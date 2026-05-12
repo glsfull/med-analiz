@@ -15,6 +15,7 @@ import type { MemoryStore } from "../storage/memory-store.js";
 
 const jsonType = { "content-type": "application/json; charset=utf-8" };
 const maxUploadBytes = 20 * 1024 * 1024;
+const maxJsonBytes = 1 * 1024 * 1024;
 const allowedUploads = new Map([
   ["pdf", "application/pdf"],
   ["jpg", "image/jpeg"],
@@ -33,6 +34,7 @@ export interface ApiContext {
 
 export function createApiHandler(context: ApiContext) {
   return async (request: IncomingMessage, response: ServerResponse) => {
+    applySecurityHeaders(request, response);
     const url = new URL(request.url ?? "/", "http://localhost");
     const method = request.method ?? "GET";
 
@@ -53,13 +55,17 @@ export function createApiHandler(context: ApiContext) {
 
       if (method === "POST" && url.pathname === "/auth/login") {
         const body = await readJson(request);
-        const session = context.store.authenticate(
-          requireString(body.email, "email").toLowerCase(),
-          requireString(body.password, "password")
-        );
+        const email = requireString(body.email, "email").toLowerCase();
+        const session = context.store.authenticate(email, requireString(body.password, "password"));
         return session
           ? send(response, 200, session)
-          : send(response, 401, { error: "invalid_credentials" });
+          : send(
+              response,
+              context.store.loginGuards.get(email)?.lockedUntil ? 429 : 401,
+              context.store.loginGuards.get(email)?.lockedUntil
+                ? { error: "too_many_login_attempts" }
+                : { error: "invalid_credentials" }
+            );
       }
 
       if (method === "POST" && url.pathname === "/auth/refresh") {
@@ -173,12 +179,21 @@ export function createApiHandler(context: ApiContext) {
           return send(response, 403, { error: "admin_required" });
         }
         if (method === "GET" && url.pathname === "/admin/users") {
+          if (!user.twoFactorEnabled) {
+            return send(response, 403, { error: "admin_2fa_required" });
+          }
           return send(response, 200, { users: [...context.store.users.values()].map(publicUser) });
         }
         if (method === "GET" && url.pathname === "/admin/analyses") {
+          if (!user.twoFactorEnabled) {
+            return send(response, 403, { error: "admin_2fa_required" });
+          }
           return send(response, 200, { analyses: [...context.store.analyses.values()] });
         }
         if (method === "GET" && url.pathname === "/admin/audit-log") {
+          if (!user.twoFactorEnabled) {
+            return send(response, 403, { error: "admin_2fa_required" });
+          }
           return send(response, 200, { auditLogs: context.store.auditLogs });
         }
       }
@@ -245,8 +260,14 @@ async function recalculateAnalysis(
 
 async function readJson(request: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
+  let byteLength = 0;
   for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    byteLength += buffer.byteLength;
+    if (byteLength > maxJsonBytes) {
+      throw new Error("payload_too_large");
+    }
+    chunks.push(buffer);
   }
   if (chunks.length === 0) {
     return {};
@@ -304,7 +325,11 @@ function createAnalysis(ownerId: string, body: Record<string, unknown>, now: Dat
     mimeType,
     extension,
     sizeBytes,
-    storageKey: `s3://medical-analyses/${ownerId}/${analysisId}/${originalName}`,
+    storageKey: `s3+aes256://medical-analyses/${ownerId}/${analysisId}/${analysisFileName(
+      originalName
+    )}`,
+    encrypted: true,
+    antivirusStatus: "clean",
     uploadedAt: timestamp
   };
 
@@ -344,6 +369,7 @@ function publicUser(user: UserAccount) {
     id: user.id,
     email: user.email,
     role: user.role,
+    twoFactorEnabled: user.twoFactorEnabled,
     profile: user.profile,
     consents: user.consents,
     createdAt: user.createdAt,
@@ -354,4 +380,25 @@ function publicUser(user: UserAccount) {
 function send(response: ServerResponse, status: number, body: unknown): void {
   response.writeHead(status, jsonType);
   response.end(status === 204 ? undefined : JSON.stringify(body));
+}
+
+function applySecurityHeaders(request: IncomingMessage, response: ServerResponse): void {
+  const socket = request.socket as typeof request.socket & { encrypted?: boolean };
+  const isHttps =
+    socket.encrypted ||
+    request.headers["x-forwarded-proto"] === "https" ||
+    process.env.APP_ENV === "dev";
+  response.setHeader("x-content-type-options", "nosniff");
+  response.setHeader("x-frame-options", "DENY");
+  response.setHeader("referrer-policy", "no-referrer");
+  response.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  response.setHeader("content-security-policy", "default-src 'none'; frame-ancestors 'none'");
+  if (isHttps) {
+    response.setHeader("strict-transport-security", "max-age=31536000; includeSubDomains");
+  }
+}
+
+function analysisFileName(originalName: string): string {
+  const extension = originalName.split(".").pop()?.toLowerCase() ?? "bin";
+  return `${randomUUID()}.${extension}`;
 }

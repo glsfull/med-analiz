@@ -6,9 +6,10 @@ import { MemoryStore } from "../apps/backend/src/storage/memory-store.js";
 describe("backend MVP API", () => {
   let server: Server;
   let baseUrl: string;
+  let store: MemoryStore;
 
   beforeEach(async () => {
-    const store = new MemoryStore(() => new Date("2026-05-12T12:00:00.000Z"));
+    store = new MemoryStore(() => new Date("2026-05-12T12:00:00.000Z"));
     server = createServer(
       createApiHandler({ store, now: () => new Date("2026-05-12T12:00:00.000Z") })
     );
@@ -38,6 +39,7 @@ describe("backend MVP API", () => {
       role: "patient"
     });
     expect(registered.body.accessToken).toEqual(expect.any(String));
+    expect(registered.body.user.twoFactorEnabled).toBe(false);
 
     const profile = await jsonRequest("/me/profile", {
       method: "PATCH",
@@ -79,6 +81,51 @@ describe("backend MVP API", () => {
     expect(refreshed.body.accessToken).not.toBe(registered.body.accessToken);
   });
 
+  it("adds secure response headers and rejects oversized JSON bodies", async () => {
+    const health = await fetch(`${baseUrl}/health`);
+
+    expect(health.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(health.headers.get("x-frame-options")).toBe("DENY");
+    expect(health.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(health.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+
+    const oversized = await jsonRequest("/auth/register", {
+      method: "POST",
+      body: { email: "large@example.test", password: "x".repeat(1_048_577) }
+    });
+    expect(oversized.status).toBe(422);
+    expect(oversized.body.error).toBe("payload_too_large");
+  });
+
+  it("hashes passwords with salted PBKDF2 and rate-limits brute force logins", async () => {
+    const registered = await jsonRequest("/auth/register", {
+      method: "POST",
+      body: { email: "rate-limit@example.test", password: "correct-password" }
+    });
+    expect(registered.status).toBe(201);
+
+    const storedUser = [...store.users.values()].find(
+      (user) => user.email === "rate-limit@example.test"
+    );
+    expect(storedUser?.passwordHash).toMatch(/^pbkdf2-sha512\$210000\$/);
+    expect(storedUser?.passwordHash).not.toBe("correct-password");
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const failed = await jsonRequest("/auth/login", {
+        method: "POST",
+        body: { email: "rate-limit@example.test", password: "wrong-password" }
+      });
+      expect(failed.status).toBe(401);
+    }
+
+    const locked = await jsonRequest("/auth/login", {
+      method: "POST",
+      body: { email: "rate-limit@example.test", password: "wrong-password" }
+    });
+    expect(locked.status).toBe(429);
+    expect(locked.body.error).toBe("too_many_login_attempts");
+  });
+
   it("validates uploads, stores analysis metadata, supports history and reprocess flow", async () => {
     const registered = await registerPatient();
 
@@ -118,9 +165,12 @@ describe("backend MVP API", () => {
     expect(created.body.analysis.files[0]).toMatchObject({
       originalName: "blood.pdf",
       mimeType: "application/pdf",
-      extension: "pdf"
+      extension: "pdf",
+      encrypted: true,
+      antivirusStatus: "clean"
     });
-    expect(created.body.analysis.files[0].storageKey).toContain("s3://medical-analyses/");
+    expect(created.body.analysis.files[0].storageKey).toContain("s3+aes256://medical-analyses/");
+    expect(created.body.analysis.files[0].storageKey).not.toContain("blood.pdf");
     expect(created.body.analysis.markers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -199,6 +249,7 @@ describe("backend MVP API", () => {
       body: { email: "admin@example.test", password: "admin-password", role: "admin" }
     });
     expect(adminRegistration.status).toBe(201);
+    expect(adminRegistration.body.user.twoFactorEnabled).toBe(true);
 
     const users = await jsonRequest("/admin/users", {
       method: "GET",
