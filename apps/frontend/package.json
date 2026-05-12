@@ -1,0 +1,16 @@
+{
+  "name": "@med-analiz/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@med-analiz/shared": "0.1.0"
+  },
+  "devDependencies": {
+    "tsx": "4.19.2"
+  }
+}
