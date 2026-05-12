@@ -17,6 +17,10 @@ describe("stage 1 scaffold", () => {
     expect(shell).toContain("Мои Анализы");
     expect(shell).toContain('data-service="med-analiz-frontend"');
     expect(shell).toContain("Кабинет пациента");
+    expect(shell).toContain("Свернуть меню");
+    expect(shell).toContain("sidebar-collapsed");
+    expect(shell).toContain("Поиск анализов, статусов, показателей");
+    expect(shell).toContain("nav-icon");
     expect(shell).toContain("Перетащите PDF, JPEG, PNG, WebP или HEIC");
     expect(shell).toContain("Общий анализ крови");
     expect(shell).toContain("История анализов");
