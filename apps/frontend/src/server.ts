@@ -10,6 +10,12 @@ const server = createServer((request, response) => {
     return;
   }
 
+  if (request.url === "/favicon.ico") {
+    response.writeHead(204);
+    response.end();
+    return;
+  }
+
   response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
   response.end("not found");
 });

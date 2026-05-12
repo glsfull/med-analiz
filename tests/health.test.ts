@@ -12,7 +12,16 @@ describe("stage 1 scaffold", () => {
   });
 
   it("renders the Russian frontend shell", () => {
-    expect(renderShell()).toContain("Мои Анализы");
-    expect(renderShell()).toContain('data-service="med-analiz-frontend"');
+    const shell = renderShell();
+
+    expect(shell).toContain("Мои Анализы");
+    expect(shell).toContain('data-service="med-analiz-frontend"');
+    expect(shell).toContain("Кабинет пациента");
+    expect(shell).toContain("Перетащите PDF, JPEG, PNG, WebP или HEIC");
+    expect(shell).toContain("Общий анализ крови");
+    expect(shell).toContain("История анализов");
+    expect(shell).toContain("Админ-панель");
+    expect(shell).toContain("Согласие на обработку персональных данных");
+    expect(shell).toContain("20 МБ");
   });
 });
