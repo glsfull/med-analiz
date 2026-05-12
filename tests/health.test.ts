@@ -17,7 +17,8 @@ describe("stage 1 scaffold", () => {
     expect(shell).toContain("Мои Анализы");
     expect(shell).toContain('data-service="med-analiz-frontend"');
     expect(shell).toContain("Кабинет пациента");
-    expect(shell).toContain('href="/admin"');
+    expect(shell).not.toContain('href="/admin"');
+    expect(shell).not.toContain("Админ-кабинет");
     expect(shell).toContain("Свернуть меню");
     expect(shell).toContain("sidebar-collapsed");
     expect(shell).toContain("Поиск анализов, статусов, показателей");
@@ -37,7 +38,7 @@ describe("stage 1 scaffold", () => {
     expect(shell).toContain("Кабинет пациента");
     expect(shell).toContain("Кабинет администратора");
     expect(shell).toContain('href="/app"');
-    expect(shell).toContain('href="/admin"');
+    expect(shell).toContain('href="/admin/site.ru"');
     expect(shell).toContain("Nuxt UI dashboard style");
   });
 
@@ -47,6 +48,7 @@ describe("stage 1 scaffold", () => {
     expect(shell).toContain("Кабинет администратора");
     expect(shell).toContain("Навигация администратора");
     expect(shell).toContain("закрытый кабинет");
+    expect(shell).toContain("/admin/site.ru");
     expect(shell).toContain("Очередь проверки");
     expect(shell).toContain("Справочник показателей");
     expect(shell).toContain('href="/app"');

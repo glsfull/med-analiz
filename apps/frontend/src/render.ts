@@ -150,7 +150,7 @@ export function renderLandingShell(): string {
         <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">+</span><span>Мои Анализы</span></a>
         <nav class="landing-nav" aria-label="Вход в кабинеты">
           <a class="btn" href="/app">Кабинет пациента</a>
-          <a class="btn primary" href="/admin">Кабинет администратора</a>
+          <a class="btn primary" href="/admin/site.ru">Кабинет администратора</a>
         </nav>
       </header>
       <main class="landing-main">
@@ -161,7 +161,7 @@ export function renderLandingShell(): string {
             <p>Легкий dashboard-интерфейс для загрузки анализов, просмотра статусов обработки и перехода в отдельные закрытые кабинеты пациента и администратора.</p>
             <div class="actions">
               <a class="btn primary" href="/app">Войти как пациент</a>
-              <a class="btn" href="/admin">Открыть админ-кабинет</a>
+              <a class="btn" href="/admin/site.ru">Открыть админ-кабинет</a>
             </div>
           </div>
           <aside class="panel preview-stack" aria-label="Превью интерфейса">
@@ -174,7 +174,7 @@ export function renderLandingShell(): string {
         <section class="stat-strip">
           <div class="metric"><strong>20 МБ</strong><span class="muted">лимит загрузки файла</span></div>
           <div class="metric"><strong>/app</strong><span class="muted">отдельный кабинет пациента</span></div>
-          <div class="metric"><strong>/admin</strong><span class="muted">закрытая ссылка администратора</span></div>
+          <div class="metric"><strong>/admin/site.ru</strong><span class="muted">закрытая ссылка администратора</span></div>
         </section>
       </main>
     </div>
@@ -224,7 +224,6 @@ export function renderShell(): string {
           <button type="button" data-view-target="report"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">Результат</span></button>
           <button type="button" data-view-target="history"><span class="nav-icon" aria-hidden="true">◷</span><span class="nav-label">История</span></button>
           <button type="button" data-view-target="auth"><span class="nav-icon" aria-hidden="true">○</span><span class="nav-label">Профиль</span></button>
-          <a href="/admin"><span class="nav-icon" aria-hidden="true">⚙</span><span class="nav-label">Админ-кабинет</span></a>
         </nav>
         <div class="workspace">
           <div class="workspace-card"><span class="avatar">АП</span><span class="workspace-meta">Анна Петрова<br /><small class="muted">beta, 2 из 5 анализов</small></span></div>
@@ -240,7 +239,6 @@ export function renderShell(): string {
           <label class="command" aria-label="Командная строка"><span aria-hidden="true">⌕</span><input type="search" placeholder="Поиск анализов, статусов, показателей" /></label>
           <div class="top-actions">
             <button class="icon-btn" type="button" aria-label="Уведомления">○</button>
-            <a class="icon-btn" href="/admin" aria-label="Кабинет администратора">⚙</a>
             <div class="profile" aria-label="Текущий профиль"><span class="avatar">АП</span><span class="user-details">Анна Петрова<br /><small class="muted">пациент</small></span></div>
           </div>
         </header>
@@ -395,17 +393,17 @@ export function renderAdminShell(): string {
     <div class="app" data-service="${serviceNames.frontend}">
       <aside class="sidebar" aria-label="Навигация администратора">
         <div class="sidebar-top">
-          <a class="brand" href="/admin"><span class="brand-mark" aria-hidden="true">A</span><span>Админ</span></a>
+          <a class="brand" href="/admin/site.ru"><span class="brand-mark" aria-hidden="true">A</span><span>Админ</span></a>
           <button class="collapse-toggle" id="sidebar-toggle" type="button" aria-label="Свернуть меню" aria-expanded="true">‹</button>
         </div>
         <nav class="nav">
-          <a href="/admin" aria-current="page"><span class="nav-icon" aria-hidden="true">□</span><span class="nav-label">Обзор</span></a>
+          <a href="/admin/site.ru" aria-current="page"><span class="nav-icon" aria-hidden="true">□</span><span class="nav-label">Обзор</span></a>
           <a href="/app"><span class="nav-icon" aria-hidden="true">○</span><span class="nav-label">Кабинет пациента</span></a>
           <a href="/"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Главная</span></a>
         </nav>
         <div class="workspace">
           <div class="workspace-card"><span class="avatar">АД</span><span class="workspace-meta">Администратор<br /><small class="muted">закрытый кабинет</small></span></div>
-          <div class="side-note">Административный раздел вынесен на отдельный URL /admin и не является вкладкой кабинета пациента.</div>
+          <div class="side-note">Административный раздел вынесен на отдельный URL /admin/site.ru и не является вкладкой кабинета пациента.</div>
         </div>
       </aside>
       <main class="main">

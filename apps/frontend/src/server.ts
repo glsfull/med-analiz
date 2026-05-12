@@ -18,7 +18,12 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (path === "/admin" || path === "/admin/") {
+  if (
+    path === "/admin/site.ru" ||
+    path === "/admin/site.ru/" ||
+    path === "/admin" ||
+    path === "/admin/"
+  ) {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.end(renderAdminShell());
     return;
