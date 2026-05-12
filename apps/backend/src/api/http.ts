@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { uploadPolicy, type PushSubscriptionPayload } from "@med-analiz/shared";
 import { getHealthStatus } from "../health.js";
 import type { Analysis, AnalysisFile, UserAccount } from "../domain/types.js";
 import {
@@ -14,7 +15,7 @@ import {
 import type { MemoryStore } from "../storage/memory-store.js";
 
 const jsonType = { "content-type": "application/json; charset=utf-8" };
-const maxUploadBytes = 20 * 1024 * 1024;
+const maxUploadBytes = uploadPolicy.maxBytes;
 const maxJsonBytes = 1 * 1024 * 1024;
 const allowedUploads = new Map([
   ["pdf", "application/pdf"],
@@ -99,6 +100,39 @@ export function createApiHandler(context: ApiContext) {
         const user = requireAuth(request, context.store);
         context.store.deleteAccount(user.id);
         return send(response, 204, {});
+      }
+
+      if (method === "POST" && url.pathname === "/me/push-subscriptions") {
+        const user = requireAuth(request, context.store);
+        const body = (await readJson(request)) as unknown as PushSubscriptionPayload;
+        const endpoint = requireString(body.endpoint, "endpoint");
+        const record = context.store.upsertPushSubscription(user.id, {
+          endpoint,
+          p256dh: typeof body.keys?.p256dh === "string" ? body.keys.p256dh : undefined,
+          auth: typeof body.keys?.auth === "string" ? body.keys.auth : undefined,
+          userAgent: request.headers["user-agent"]
+        });
+        return send(response, 201, {
+          pushSubscription: {
+            id: record.id,
+            endpoint: record.endpoint,
+            createdAt: record.createdAt
+          }
+        });
+      }
+
+      if (method === "DELETE" && url.pathname === "/me/push-subscriptions") {
+        const user = requireAuth(request, context.store);
+        const body = (await readJson(request)) as unknown as PushSubscriptionPayload;
+        const deleted = context.store.deletePushSubscription(
+          user.id,
+          requireString(body.endpoint, "endpoint")
+        );
+        return send(
+          response,
+          deleted ? 204 : 404,
+          deleted ? {} : { error: "subscription_not_found" }
+        );
       }
 
       if (method === "POST" && url.pathname === "/analyses") {

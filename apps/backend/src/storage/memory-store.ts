@@ -4,6 +4,7 @@ import type {
   AuditLog,
   ConsentState,
   AiSettings,
+  PushSubscriptionRecord,
   UserAccount,
   UserProfile,
   UserRole
@@ -26,6 +27,7 @@ export class MemoryStore {
   readonly accessTokens = new Map<string, string>();
   readonly refreshTokens = new Map<string, string>();
   readonly auditLogs: AuditLog[] = [];
+  readonly pushSubscriptions = new Map<string, PushSubscriptionRecord>();
   readonly loginGuards = new Map<string, LoginGuardState>();
   private aiSecret?: string;
   aiSettings: AiSettings;
@@ -156,6 +158,48 @@ export class MemoryStore {
     return this.aiSettings;
   }
 
+  upsertPushSubscription(
+    userId: string,
+    subscription: {
+      endpoint: string;
+      p256dh?: string;
+      auth?: string;
+      userAgent?: string;
+    }
+  ): PushSubscriptionRecord {
+    const existing = [...this.pushSubscriptions.values()].find(
+      (candidate) => candidate.userId === userId && candidate.endpoint === subscription.endpoint
+    );
+    const record: PushSubscriptionRecord = {
+      id: existing?.id ?? randomUUID(),
+      userId,
+      endpoint: subscription.endpoint,
+      p256dh: subscription.p256dh,
+      auth: subscription.auth,
+      userAgent: subscription.userAgent,
+      createdAt: existing?.createdAt ?? this.now().toISOString()
+    };
+    this.pushSubscriptions.set(record.id, record);
+    this.writeAudit(userId, "push.subscription_saved", "session", record.id, {
+      endpointHash: this.hashEndpoint(record.endpoint)
+    });
+    return record;
+  }
+
+  deletePushSubscription(userId: string, endpoint: string): boolean {
+    const record = [...this.pushSubscriptions.values()].find(
+      (candidate) => candidate.userId === userId && candidate.endpoint === endpoint
+    );
+    if (!record) {
+      return false;
+    }
+    this.pushSubscriptions.delete(record.id);
+    this.writeAudit(userId, "push.subscription_deleted", "session", record.id, {
+      endpointHash: this.hashEndpoint(endpoint)
+    });
+    return true;
+  }
+
   getAiSecret(): string | undefined {
     return this.aiSecret;
   }
@@ -217,6 +261,10 @@ export class MemoryStore {
     const lockedUntil =
       attempts >= 5 ? new Date(this.now().getTime() + 15 * 60 * 1000).toISOString() : undefined;
     this.loginGuards.set(loginKey, { attempts, lockedUntil });
+  }
+
+  private hashEndpoint(endpoint: string): string {
+    return Buffer.from(endpoint).toString("base64url").slice(0, 16);
   }
 
   private defaultProfile(): UserProfile {
