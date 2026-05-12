@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { pbkdf2Sync, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import type {
   Analysis,
   AuditLog,
@@ -14,12 +14,18 @@ export interface SessionPair {
   userId: string;
 }
 
+export interface LoginGuardState {
+  attempts: number;
+  lockedUntil?: string;
+}
+
 export class MemoryStore {
   readonly users = new Map<string, UserAccount>();
   readonly analyses = new Map<string, Analysis>();
   readonly accessTokens = new Map<string, string>();
   readonly refreshTokens = new Map<string, string>();
   readonly auditLogs: AuditLog[] = [];
+  readonly loginGuards = new Map<string, LoginGuardState>();
 
   constructor(private readonly now: () => Date = () => new Date()) {}
 
@@ -34,6 +40,7 @@ export class MemoryStore {
       email,
       passwordHash: this.hashPassword(password),
       role,
+      twoFactorEnabled: role === "admin",
       profile: this.defaultProfile(),
       consents: this.defaultConsents(timestamp),
       createdAt: timestamp
@@ -44,16 +51,23 @@ export class MemoryStore {
   }
 
   authenticate(email: string, password: string): SessionPair | undefined {
-    const user = [...this.users.values()].find(
-      (candidate) =>
-        candidate.email === email &&
-        !candidate.deletedAt &&
-        candidate.passwordHash === this.hashPassword(password)
-    );
-    if (!user) {
+    const loginKey = email.toLowerCase();
+    if (this.isLoginLocked(loginKey)) {
+      this.writeAudit("system", "session.login_blocked", "session", loginKey, {
+        reason: "brute_force_protection"
+      });
       return undefined;
     }
 
+    const user = [...this.users.values()].find(
+      (candidate) => candidate.email === loginKey && !candidate.deletedAt
+    );
+    if (!user || !this.verifyPassword(password, user.passwordHash)) {
+      this.recordFailedLogin(loginKey);
+      return undefined;
+    }
+
+    this.loginGuards.delete(loginKey);
     const session = this.issueSession(user.id);
     this.writeAudit(user.id, "session.login", "session", user.id, {});
     return session;
@@ -136,7 +150,36 @@ export class MemoryStore {
   }
 
   private hashPassword(password: string): string {
-    return createHash("sha256").update(password).digest("hex");
+    const salt = randomBytes(16).toString("base64url");
+    const hash = pbkdf2Sync(password, salt, 210_000, 32, "sha512").toString("base64url");
+    return `pbkdf2-sha512$210000$${salt}$${hash}`;
+  }
+
+  private verifyPassword(password: string, storedHash: string): boolean {
+    const [algorithm, iterations, salt, expected] = storedHash.split("$");
+    if (algorithm !== "pbkdf2-sha512" || !iterations || !salt || !expected) {
+      return false;
+    }
+    const candidate = pbkdf2Sync(password, salt, Number(iterations), 32, "sha512").toString(
+      "base64url"
+    );
+    return (
+      candidate.length === expected.length &&
+      timingSafeEqual(Buffer.from(candidate), Buffer.from(expected))
+    );
+  }
+
+  private isLoginLocked(loginKey: string): boolean {
+    const guard = this.loginGuards.get(loginKey);
+    return Boolean(guard?.lockedUntil && Date.parse(guard.lockedUntil) > this.now().getTime());
+  }
+
+  private recordFailedLogin(loginKey: string): void {
+    const current = this.loginGuards.get(loginKey) ?? { attempts: 0 };
+    const attempts = current.attempts + 1;
+    const lockedUntil =
+      attempts >= 5 ? new Date(this.now().getTime() + 15 * 60 * 1000).toISOString() : undefined;
+    this.loginGuards.set(loginKey, { attempts, lockedUntil });
   }
 
   private defaultProfile(): UserProfile {

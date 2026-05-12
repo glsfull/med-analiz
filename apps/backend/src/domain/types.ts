@@ -22,6 +22,7 @@ export interface UserAccount {
   email: string;
   passwordHash: string;
   role: UserRole;
+  twoFactorEnabled: boolean;
   profile: UserProfile;
   consents: ConsentState;
   createdAt: string;
@@ -45,6 +46,8 @@ export interface AnalysisFile {
   extension: string;
   sizeBytes: number;
   storageKey: string;
+  encrypted: boolean;
+  antivirusStatus: "pending" | "clean" | "infected";
   uploadedAt: string;
 }
 
