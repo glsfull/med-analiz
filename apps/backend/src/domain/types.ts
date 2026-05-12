@@ -1,0 +1,92 @@
+export type UserRole = "patient" | "admin";
+
+export interface UserProfile {
+  fullName: string;
+  birthDate: string;
+  sex: "female" | "male" | "other" | "unknown";
+  heightCm?: number;
+  weightKg?: number;
+  chronicConditions: string[];
+  medications: string[];
+}
+
+export interface ConsentState {
+  personalData: boolean;
+  medicalData: boolean;
+  marketing: boolean;
+  updatedAt: string;
+}
+
+export interface UserAccount {
+  id: string;
+  email: string;
+  passwordHash: string;
+  role: UserRole;
+  profile: UserProfile;
+  consents: ConsentState;
+  createdAt: string;
+  deletedAt?: string;
+}
+
+export type AnalysisStatus =
+  | "uploaded"
+  | "ocr_pending"
+  | "ai_pending"
+  | "needs_review"
+  | "completed"
+  | "error";
+
+export interface AnalysisFile {
+  id: string;
+  analysisId: string;
+  ownerId: string;
+  originalName: string;
+  mimeType: string;
+  extension: string;
+  sizeBytes: number;
+  storageKey: string;
+  uploadedAt: string;
+}
+
+export interface ExtractedMarker {
+  id: string;
+  analysisId: string;
+  name: string;
+  value: string;
+  unit?: string;
+  referenceRange?: string;
+  status: "low" | "normal" | "high" | "critical" | "unknown";
+  confidence: number;
+}
+
+export interface Interpretation {
+  id: string;
+  analysisId: string;
+  summary: string;
+  disclaimer: string;
+  modelVersion: string;
+  createdAt: string;
+}
+
+export interface Analysis {
+  id: string;
+  ownerId: string;
+  title: string;
+  status: AnalysisStatus;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string;
+  files: AnalysisFile[];
+  markers: ExtractedMarker[];
+  interpretation?: Interpretation;
+}
+
+export interface AuditLog {
+  id: string;
+  actorId: string;
+  action: string;
+  subjectType: "user" | "analysis" | "file" | "session";
+  subjectId: string;
+  createdAt: string;
+  metadata: Record<string, string | number | boolean>;
+}
