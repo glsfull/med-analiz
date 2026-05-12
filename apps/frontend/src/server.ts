@@ -1,12 +1,37 @@
 import { createServer } from "node:http";
-import { renderShell } from "./render.js";
+import { renderAdminShell, renderLandingShell, renderShell } from "./render.js";
 
 const port = Number(process.env.FRONTEND_PORT ?? 3000);
 
 const server = createServer((request, response) => {
-  if (request.url === "/" || request.url === "/index.html") {
+  const path = request.url?.split("?")[0] ?? "/";
+
+  if (path === "/" || path === "/index.html") {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(renderLandingShell());
+    return;
+  }
+
+  if (path === "/app" || path === "/app/") {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.end(renderShell());
+    return;
+  }
+
+  if (
+    path === "/admin/site.ru" ||
+    path === "/admin/site.ru/" ||
+    path === "/admin" ||
+    path === "/admin/"
+  ) {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(renderAdminShell());
+    return;
+  }
+
+  if (path === "/favicon.ico") {
+    response.writeHead(204);
+    response.end();
     return;
   }
 
