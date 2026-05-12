@@ -52,19 +52,26 @@ export interface ExtractedMarker {
   id: string;
   analysisId: string;
   name: string;
+  canonicalName: string;
   value: string;
   unit?: string;
   referenceRange?: string;
   status: "low" | "normal" | "high" | "critical" | "unknown";
   confidence: number;
+  source: "ocr" | "user";
 }
 
 export interface Interpretation {
   id: string;
   analysisId: string;
   summary: string;
+  deviations: string[];
+  recommendations: string[];
+  confidence: number;
   disclaimer: string;
   modelVersion: string;
+  promptVersion: string;
+  dictionaryVersion: string;
   createdAt: string;
 }
 

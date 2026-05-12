@@ -1,13 +1,16 @@
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { getHealthStatus } from "../health.js";
-import type {
-  Analysis,
-  AnalysisFile,
-  ExtractedMarker,
-  Interpretation,
-  UserAccount
-} from "../domain/types.js";
+import type { Analysis, AnalysisFile, UserAccount } from "../domain/types.js";
+import {
+  applyMarkerCorrections,
+  FixtureOcrProvider,
+  RuleBasedAiProvider,
+  recalculateInterpretation,
+  runAnalysisPipeline,
+  type AiProvider,
+  type OcrProvider
+} from "../processing/providers.js";
 import type { MemoryStore } from "../storage/memory-store.js";
 
 const jsonType = { "content-type": "application/json; charset=utf-8" };
@@ -24,6 +27,8 @@ const allowedUploads = new Map([
 export interface ApiContext {
   store: MemoryStore;
   now?: () => Date;
+  ocrProvider?: OcrProvider;
+  aiProvider?: AiProvider;
 }
 
 export function createApiHandler(context: ApiContext) {
@@ -98,6 +103,7 @@ export function createApiHandler(context: ApiContext) {
           context.now?.() ?? new Date()
         );
         context.store.addAnalysis(analysis);
+        await processAnalysis(context, analysis, user);
         return send(response, 201, { analysis });
       }
 
@@ -133,8 +139,7 @@ export function createApiHandler(context: ApiContext) {
         if (!analysis || analysis.deletedAt || analysis.ownerId !== user.id) {
           return send(response, 404, { error: "analysis_not_found" });
         }
-        analysis.status = "ocr_pending";
-        analysis.updatedAt = (context.now?.() ?? new Date()).toISOString();
+        await processAnalysis(context, analysis, user);
         context.store.writeAudit(
           user.id,
           "analysis.reprocess_requested",
@@ -142,6 +147,23 @@ export function createApiHandler(context: ApiContext) {
           analysis.id,
           {}
         );
+        return send(response, 200, { analysis });
+      }
+
+      const correctionsMatch = url.pathname.match(/^\/analyses\/([^/]+)\/corrections$/);
+      if (method === "PATCH" && correctionsMatch) {
+        const user = requireAuth(request, context.store);
+        const analysis = context.store.analyses.get(correctionsMatch[1] ?? "");
+        if (!analysis || analysis.deletedAt || analysis.ownerId !== user.id) {
+          return send(response, 404, { error: "analysis_not_found" });
+        }
+        const body = await readJson(request);
+        const markers = readMarkerCorrections(body.markers);
+        applyMarkerCorrections(analysis, markers, context.now?.() ?? new Date());
+        await recalculateAnalysis(context, analysis, user);
+        context.store.writeAudit(user.id, "analysis.corrected", "analysis", analysis.id, {
+          markerCount: markers.length
+        });
         return send(response, 200, { analysis });
       }
 
@@ -168,6 +190,57 @@ export function createApiHandler(context: ApiContext) {
       return send(response, status, { error: message });
     }
   };
+}
+
+async function processAnalysis(
+  context: ApiContext,
+  analysis: Analysis,
+  user: UserAccount
+): Promise<void> {
+  try {
+    await runAnalysisPipeline(
+      analysis,
+      user.profile,
+      context.ocrProvider ?? new FixtureOcrProvider(),
+      context.aiProvider ?? new RuleBasedAiProvider(),
+      context.now?.() ?? new Date()
+    );
+    context.store.writeAudit(user.id, "analysis.processed", "analysis", analysis.id, {
+      markerCount: analysis.markers.length
+    });
+  } catch (error) {
+    analysis.status = "error";
+    analysis.updatedAt = (context.now?.() ?? new Date()).toISOString();
+    context.store.writeAudit(user.id, "analysis.processing_failed", "analysis", analysis.id, {
+      reason: error instanceof Error ? error.message : "unknown"
+    });
+    throw error;
+  }
+}
+
+async function recalculateAnalysis(
+  context: ApiContext,
+  analysis: Analysis,
+  user: UserAccount
+): Promise<void> {
+  try {
+    await recalculateInterpretation(
+      analysis,
+      user.profile,
+      context.aiProvider ?? new RuleBasedAiProvider(),
+      context.now?.() ?? new Date()
+    );
+    context.store.writeAudit(user.id, "analysis.recalculated", "analysis", analysis.id, {
+      markerCount: analysis.markers.length
+    });
+  } catch (error) {
+    analysis.status = "error";
+    analysis.updatedAt = (context.now?.() ?? new Date()).toISOString();
+    context.store.writeAudit(user.id, "analysis.processing_failed", "analysis", analysis.id, {
+      reason: error instanceof Error ? error.message : "unknown"
+    });
+    throw error;
+  }
 }
 
 async function readJson(request: IncomingMessage): Promise<Record<string, unknown>> {
@@ -234,16 +307,6 @@ function createAnalysis(ownerId: string, body: Record<string, unknown>, now: Dat
     storageKey: `s3://medical-analyses/${ownerId}/${analysisId}/${originalName}`,
     uploadedAt: timestamp
   };
-  const markers: ExtractedMarker[] = [];
-  const interpretation: Interpretation = {
-    id: randomUUID(),
-    analysisId,
-    summary:
-      "Файл принят. OCR и AI-интерпретация будут выполнены асинхронным pipeline на следующем этапе.",
-    disclaimer: "Сервис не ставит диагноз и не заменяет консультацию врача.",
-    modelVersion: "pending-stage-4",
-    createdAt: timestamp
-  };
 
   return {
     id: analysisId,
@@ -253,9 +316,27 @@ function createAnalysis(ownerId: string, body: Record<string, unknown>, now: Dat
     createdAt: timestamp,
     updatedAt: timestamp,
     files: [analysisFile],
-    markers,
-    interpretation
+    markers: []
   };
+}
+
+function readMarkerCorrections(
+  value: unknown
+): Array<{ name: string; value: string; unit?: string }> {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error("invalid_markers");
+  }
+  return value.map((marker) => {
+    if (!marker || typeof marker !== "object" || Array.isArray(marker)) {
+      throw new Error("invalid_markers");
+    }
+    const body = marker as Record<string, unknown>;
+    return {
+      name: requireString(body.name, "marker_name"),
+      value: requireString(body.value, "marker_value"),
+      unit: typeof body.unit === "string" && body.unit.trim() ? body.unit.trim() : undefined
+    };
+  });
 }
 
 function publicUser(user: UserAccount) {

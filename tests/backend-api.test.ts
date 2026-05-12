@@ -113,7 +113,7 @@ describe("backend MVP API", () => {
     expect(created.status).toBe(201);
     expect(created.body.analysis).toMatchObject({
       title: "Общий анализ крови",
-      status: "uploaded"
+      status: "completed"
     });
     expect(created.body.analysis.files[0]).toMatchObject({
       originalName: "blood.pdf",
@@ -121,6 +121,29 @@ describe("backend MVP API", () => {
       extension: "pdf"
     });
     expect(created.body.analysis.files[0].storageKey).toContain("s3://medical-analyses/");
+    expect(created.body.analysis.markers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "Гемоглобин",
+          canonicalName: "hemoglobin",
+          value: "118",
+          status: "low",
+          source: "ocr"
+        }),
+        expect.objectContaining({
+          name: "Глюкоза",
+          canonicalName: "glucose",
+          value: "6.2",
+          status: "high"
+        })
+      ])
+    );
+    expect(created.body.analysis.interpretation).toMatchObject({
+      modelVersion: "rule-based-ai-adapter-v1",
+      promptVersion: "stage-4-interpretation-v1",
+      dictionaryVersion: "stage-4-rf-lab-v1",
+      disclaimer: "Сервис не ставит диагноз и не заменяет консультацию врача."
+    });
 
     const history = await jsonRequest("/analyses", {
       method: "GET",
@@ -134,7 +157,33 @@ describe("backend MVP API", () => {
       token: registered.accessToken
     });
     expect(reprocessed.status).toBe(200);
-    expect(reprocessed.body.analysis.status).toBe("ocr_pending");
+    expect(reprocessed.body.analysis.status).toBe("completed");
+  });
+
+  it("accepts user marker corrections and recalculates interpretation", async () => {
+    const registered = await registerPatient();
+    const created = await createAnalysis(registered.accessToken);
+
+    const corrected = await jsonRequest(`/analyses/${created.body.analysis.id}/corrections`, {
+      method: "PATCH",
+      token: registered.accessToken,
+      body: {
+        markers: [
+          { name: "Гемоглобин", value: "132", unit: "г/л" },
+          { name: "Глюкоза", value: "5.1", unit: "ммоль/л" }
+        ]
+      }
+    });
+
+    expect(corrected.status).toBe(200);
+    expect(corrected.body.analysis.status).toBe("completed");
+    expect(corrected.body.analysis.markers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ canonicalName: "hemoglobin", status: "normal", source: "user" }),
+        expect.objectContaining({ canonicalName: "glucose", status: "normal", source: "user" })
+      ])
+    );
+    expect(corrected.body.analysis.interpretation.deviations).toEqual([]);
   });
 
   it("restricts admin APIs and exposes users, analyses, and audit log to admins", async () => {
@@ -176,6 +225,21 @@ describe("backend MVP API", () => {
       body: { email: "patient@example.test", password: "secret-password" }
     });
     return response.body as { accessToken: string; refreshToken: string };
+  }
+
+  async function createAnalysis(token: string) {
+    return jsonRequest("/analyses", {
+      method: "POST",
+      token,
+      body: {
+        title: "Общий анализ крови",
+        file: {
+          originalName: "blood.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 120_000
+        }
+      }
+    });
   }
 
   async function jsonRequest(
