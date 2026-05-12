@@ -38,6 +38,16 @@ export interface AiSettings {
   updatedBy?: string;
 }
 
+export interface PushSubscriptionRecord {
+  id: string;
+  userId: string;
+  endpoint: string;
+  p256dh?: string;
+  auth?: string;
+  userAgent?: string;
+  createdAt: string;
+}
+
 export type AnalysisStatus =
   | "uploaded"
   | "ocr_pending"

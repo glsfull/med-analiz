@@ -1,4 +1,4 @@
-import { serviceNames } from "@med-analiz/shared";
+import { designTokens, serviceNames, uploadPolicy } from "@med-analiz/shared";
 
 const statuses = ["uploaded", "OCR", "AI", "needs_review", "completed", "error"];
 
@@ -155,6 +155,59 @@ const sidebarScript = `
         });
       }`;
 
+export function renderManifest(): string {
+  return JSON.stringify({
+    name: "Мои Анализы",
+    short_name: "Анализы",
+    description: "PWA-кабинет для загрузки и расшифровки медицинских анализов.",
+    start_url: "/app",
+    scope: "/",
+    display: "standalone",
+    background_color: designTokens.colors.background,
+    theme_color: designTokens.colors.primary,
+    lang: "ru",
+    categories: ["health", "medical", "productivity"],
+    icons: [
+      {
+        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23059669'/%3E%3Cpath d='M88 44h16v44h44v16h-44v44H88v-44H44V88h44z' fill='white'/%3E%3C/svg%3E",
+        sizes: "192x192",
+        type: "image/svg+xml",
+        purpose: "any maskable"
+      }
+    ]
+  });
+}
+
+export function renderServiceWorker(): string {
+  return `
+const CACHE_NAME = 'med-analiz-pwa-v1';
+const APP_SHELL = ['/', '/app', '/manifest.webmanifest'];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))));
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request).then((cached) => cached || caches.match('/app'))));
+});
+
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+  event.waitUntil(self.registration.showNotification(data.title || 'Мои Анализы', {
+    body: data.body || 'Статус анализа обновлен',
+    tag: data.tag || 'analysis-status'
+  }));
+});
+`.trim();
+}
+
 export function renderLandingShell(): string {
   return `<!doctype html>
 <html lang="ru">
@@ -242,6 +295,8 @@ export function renderShell(): string {
   <head>
     <title>Мои Анализы · Кабинет пациента</title>
     ${sharedHead}
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="${designTokens.colors.primary}" />
     <style>
       .dropzone { border: 1px dashed var(--border-strong); background: var(--surface-soft); border-radius: 8px; padding: 26px; display: grid; gap: 14px; text-align: center; min-height: 230px; place-items: center; }
       .dropzone.dragover { border-color: var(--primary); background: #ecfdf5; }
@@ -264,6 +319,13 @@ export function renderShell(): string {
       .filters { display: flex; flex-wrap: wrap; gap: 10px; }
       .filters select, .filters input { border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; background: #fff; min-width: 150px; min-height: 38px; }
       .auth-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+      .mobile-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+      .mobile-tool { border: 1px solid var(--border); border-radius: 8px; background: var(--surface-soft); padding: 12px; text-align: left; display: grid; gap: 4px; }
+      .mobile-tool strong { font-size: 13px; }
+      .mobile-tool span { color: var(--muted); font-size: 12px; line-height: 1.35; }
+      .pwa-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-soft); margin-bottom: 14px; }
+      .pwa-strip p { margin: 0; color: var(--muted); flex: 1 1 220px; }
+      @media (max-width: 640px) { .mobile-tools { grid-template-columns: 1fr; } .dropzone { min-height: 260px; padding: 18px; } }
     </style>
   </head>
   <body>
@@ -308,13 +370,25 @@ export function renderShell(): string {
             <div class="grid">
               <section class="panel" aria-labelledby="dashboard-title">
                 <h2 id="dashboard-title">Новый анализ</h2>
+                <div class="pwa-strip">
+                  <p>Мобильный PWA-режим: установка на экран, offline shell и уведомления о статусе обработки.</p>
+                  <button class="btn" id="install-pwa" type="button" hidden>Установить</button>
+                  <button class="btn" id="enable-push" type="button">Включить уведомления</button>
+                </div>
                 <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Загрузить анализ перетаскиванием или выбором файла">
                   <div>
                     <h3>Перетащите PDF, JPEG, PNG, WebP или HEIC</h3>
                     <p class="muted">Файл до 20 МБ. Перед обработкой требуется согласие на работу с медицинскими данными.</p>
+                    <div class="mobile-tools" aria-label="Мобильные способы загрузки">
+                      <label class="mobile-tool" for="camera-file"><strong>Камера</strong><span>Снимок бланка без перехода в галерею</span></label>
+                      <label class="mobile-tool" for="gallery-file"><strong>Фото</strong><span>Выбор из медиатеки телефона</span></label>
+                      <label class="mobile-tool" for="analysis-file"><strong>Файл</strong><span>PDF или изображение из хранилища</span></label>
+                    </div>
                     <div class="actions" style="justify-content:center">
                       <label class="btn primary" for="analysis-file">Выбрать файл</label>
-                      <input class="sr-only" id="analysis-file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" />
+                      <input class="sr-only upload-input" id="analysis-file" type="file" accept="${uploadPolicy.extensions.map((extension) => `.${extension}`).join(",")}" />
+                      <input class="sr-only upload-input" id="camera-file" type="file" accept="image/*" capture="environment" />
+                      <input class="sr-only upload-input" id="gallery-file" type="file" accept="image/*" />
                     </div>
                     <p id="upload-feedback" class="upload-feedback" aria-live="polite"></p>
                   </div>
@@ -406,17 +480,16 @@ export function renderShell(): string {
         if (navItem) navItem.setAttribute('aria-current', 'page');
       }));
 
-      const fileInput = document.getElementById('analysis-file');
       const feedback = document.getElementById('upload-feedback');
-      const allowed = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic'];
+      const allowed = ${JSON.stringify(uploadPolicy.extensions)};
       function validateFile(file) {
         if (!file) return;
         const ext = file.name.split('.').pop().toLowerCase();
-        const tooLarge = file.size > 20 * 1024 * 1024;
+        const tooLarge = file.size > ${uploadPolicy.maxBytes};
         feedback.className = 'upload-feedback ' + (!allowed.includes(ext) || tooLarge ? 'error' : 'ok');
         feedback.textContent = !allowed.includes(ext) ? 'Формат не поддерживается.' : tooLarge ? 'Файл больше 20 МБ.' : 'Файл принят: ' + file.name;
       }
-      fileInput.addEventListener('change', () => validateFile(fileInput.files[0]));
+      document.querySelectorAll('.upload-input').forEach((input) => input.addEventListener('change', () => validateFile(input.files[0])));
       const dropzone = document.getElementById('dropzone');
       ['dragenter', 'dragover'].forEach((eventName) => dropzone.addEventListener(eventName, (event) => { event.preventDefault(); dropzone.classList.add('dragover'); }));
       ['dragleave', 'drop'].forEach((eventName) => dropzone.addEventListener(eventName, (event) => { event.preventDefault(); dropzone.classList.remove('dragover'); }));
@@ -426,6 +499,47 @@ export function renderShell(): string {
         document.querySelectorAll('[data-status]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
         document.getElementById('status-badge').textContent = button.dataset.status;
       }));
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js');
+      }
+      let deferredInstallEvent;
+      const installButton = document.getElementById('install-pwa');
+      window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallEvent = event;
+        installButton.hidden = false;
+      });
+      installButton.addEventListener('click', async () => {
+        if (!deferredInstallEvent) return;
+        deferredInstallEvent.prompt();
+        await deferredInstallEvent.userChoice;
+        deferredInstallEvent = undefined;
+        installButton.hidden = true;
+      });
+      document.getElementById('enable-push').addEventListener('click', async () => {
+        if (!('Notification' in window)) {
+          feedback.className = 'upload-feedback error';
+          feedback.textContent = 'Уведомления не поддерживаются этим браузером.';
+          return;
+        }
+        const permission = await Notification.requestPermission();
+        const vapidKey = document.querySelector('meta[name="web-push-public-key"]')?.content;
+        if (permission === 'granted' && vapidKey && navigator.serviceWorker) {
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: vapidKey
+          });
+          await fetch('/me/push-subscriptions', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(subscription)
+          }).catch(() => undefined);
+        }
+        feedback.className = 'upload-feedback ' + (permission === 'granted' ? 'ok' : 'error');
+        feedback.textContent = permission === 'granted' ? 'Уведомления включены для этого устройства.' : 'Уведомления не включены.';
+      });
 
 ${sidebarScript}
     </script>

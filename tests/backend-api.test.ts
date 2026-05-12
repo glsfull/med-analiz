@@ -320,6 +320,35 @@ describe("backend MVP API", () => {
     });
   });
 
+  it("stores and removes mobile push subscriptions for the authenticated user", async () => {
+    const registered = await registerPatient();
+
+    const saved = await jsonRequest("/me/push-subscriptions", {
+      method: "POST",
+      token: registered.accessToken,
+      body: {
+        endpoint: "https://push.example.test/subscription/1",
+        keys: { p256dh: "client-public-key", auth: "client-auth-secret" }
+      }
+    });
+
+    expect(saved.status).toBe(201);
+    expect(saved.body.pushSubscription).toMatchObject({
+      endpoint: "https://push.example.test/subscription/1"
+    });
+    expect(store.pushSubscriptions).toHaveLength(1);
+    expect(store.auditLogs.map((entry) => entry.action)).toContain("push.subscription_saved");
+
+    const deleted = await jsonRequest("/me/push-subscriptions", {
+      method: "DELETE",
+      token: registered.accessToken,
+      body: { endpoint: "https://push.example.test/subscription/1" }
+    });
+
+    expect(deleted.status).toBe(204);
+    expect(store.pushSubscriptions).toHaveLength(0);
+  });
+
   async function registerPatient() {
     const response = await jsonRequest("/auth/register", {
       method: "POST",

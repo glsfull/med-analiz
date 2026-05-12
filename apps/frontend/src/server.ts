@@ -1,5 +1,12 @@
 import { createServer } from "node:http";
-import { renderAdminShell, renderLandingShell, renderSeoPageShell, renderShell } from "./render.js";
+import {
+  renderAdminShell,
+  renderLandingShell,
+  renderManifest,
+  renderSeoPageShell,
+  renderServiceWorker,
+  renderShell
+} from "./render.js";
 
 const port = Number(process.env.FRONTEND_PORT ?? 3000);
 
@@ -15,6 +22,24 @@ const server = createServer((request, response) => {
   if (path === "/app" || path === "/app/") {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.end(renderShell());
+    return;
+  }
+
+  if (path === "/manifest.webmanifest") {
+    response.writeHead(200, {
+      "content-type": "application/manifest+json; charset=utf-8",
+      "cache-control": "public, max-age=300"
+    });
+    response.end(renderManifest());
+    return;
+  }
+
+  if (path === "/sw.js") {
+    response.writeHead(200, {
+      "content-type": "text/javascript; charset=utf-8",
+      "cache-control": "no-cache"
+    });
+    response.end(renderServiceWorker());
     return;
   }
 

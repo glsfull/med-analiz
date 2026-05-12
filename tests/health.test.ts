@@ -3,7 +3,9 @@ import { getHealthStatus } from "../apps/backend/src/health.js";
 import {
   renderAdminShell,
   renderLandingShell,
+  renderManifest,
   renderSeoPageShell,
+  renderServiceWorker,
   renderShell
 } from "../apps/frontend/src/render.js";
 
@@ -37,6 +39,20 @@ describe("stage 1 scaffold", () => {
     expect(shell).toContain("Переключить тему");
     expect(shell).toContain("сильно выше");
     expect(shell).toContain("Я всего лишь искусственный интеллект");
+    expect(shell).toContain('rel="manifest"');
+    expect(shell).toContain("serviceWorker");
+    expect(shell).toContain("Включить уведомления");
+    expect(shell).toContain('capture="environment"');
+    expect(shell).toContain("Мобильные способы загрузки");
+  });
+
+  it("renders PWA manifest and service worker assets", () => {
+    const manifest = JSON.parse(renderManifest()) as { start_url: string; display: string };
+    const serviceWorker = renderServiceWorker();
+
+    expect(manifest).toMatchObject({ start_url: "/app", display: "standalone" });
+    expect(serviceWorker).toContain("CACHE_NAME");
+    expect(serviceWorker).toContain("showNotification");
   });
 
   it("renders the pre-registration landing page", () => {
