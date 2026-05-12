@@ -57,8 +57,20 @@ export class RuleBasedAiProvider implements AiProvider {
       recommendations: [
         "Проверьте результат с лечащим врачом с учетом симптомов, анамнеза и лекарств."
       ],
+      normalMarkers: input.markers
+        .filter((marker) => marker.status === "normal")
+        .map((marker) => `${marker.name}: показатель в пределах референса.`),
+      possibleReasons: input.markers
+        .filter((marker) => marker.status !== "normal" && marker.status !== "unknown")
+        .map((marker) => marker.patientComment),
+      urgentWarnings: input.markers
+        .filter((marker) => marker.status === "critical")
+        .map(
+          (marker) => `${marker.name}: критическое отклонение, обратитесь за медицинской помощью.`
+        ),
       confidence: averageConfidence(input.markers),
-      disclaimer: "Сервис не ставит диагноз и не заменяет консультацию врача."
+      disclaimer:
+        "Я всего лишь искусственный интеллект: не ставлю диагнозы и не заменяю врача. Интерпретация предварительная, с результатами стоит обратиться к врачу."
     };
   }
 }
@@ -153,6 +165,14 @@ function createMarker(
     referenceRange: reference ? `${reference.min}-${reference.max} ${reference.unit}` : undefined,
     status:
       reference && Number.isFinite(numericValue) ? classify(numericValue, reference) : "unknown",
+    severity:
+      reference && Number.isFinite(numericValue)
+        ? classifySeverity(numericValue, reference)
+        : "unknown",
+    description:
+      reference?.description ??
+      "Показатель распознан, но для него пока нет подробного описания в справочнике.",
+    patientComment: buildPatientComment(name.trim(), numericValue, reference),
     confidence,
     source
   };
@@ -174,6 +194,38 @@ function classify(value: number, reference: MarkerReference): ExtractedMarker["s
   return "normal";
 }
 
+function classifySeverity(value: number, reference: MarkerReference): ExtractedMarker["severity"] {
+  const status = classify(value, reference);
+  if (status === "critical") {
+    return "critical";
+  }
+  if (status === "high") {
+    return value > reference.max * 1.5 ? "danger" : "attention";
+  }
+  if (status === "low") {
+    return value < reference.min * 0.5 ? "danger" : "attention";
+  }
+  return status === "normal" ? "normal" : "unknown";
+}
+
+function buildPatientComment(
+  name: string,
+  value: number,
+  reference: MarkerReference | undefined
+): string {
+  if (!reference || !Number.isFinite(value)) {
+    return `${name}: значение нужно проверить вручную, так как справочник не распознал норму.`;
+  }
+  const status = classify(value, reference);
+  if (status === "normal") {
+    return `${name}: показатель в норме. ${reference.description}`;
+  }
+  if (status === "critical") {
+    return `${name}: ${reference.criticalHint}`;
+  }
+  return `${name}: ${status === "high" ? reference.highHint : reference.lowHint}`;
+}
+
 function validateAiResponse(
   value: unknown,
   analysisId: string,
@@ -187,7 +239,10 @@ function validateAiResponse(
   if (
     typeof body.summary !== "string" ||
     !Array.isArray(body.deviations) ||
+    !Array.isArray(body.normalMarkers) ||
+    !Array.isArray(body.possibleReasons) ||
     !Array.isArray(body.recommendations) ||
+    !Array.isArray(body.urgentWarnings) ||
     typeof body.confidence !== "number" ||
     typeof body.disclaimer !== "string"
   ) {
@@ -198,7 +253,10 @@ function validateAiResponse(
     analysisId,
     summary: body.summary,
     deviations: body.deviations.map(String),
+    normalMarkers: body.normalMarkers.map(String),
+    possibleReasons: body.possibleReasons.map(String),
     recommendations: body.recommendations.map(String),
+    urgentWarnings: body.urgentWarnings.map(String),
     confidence: body.confidence,
     disclaimer: body.disclaimer,
     modelVersion: provider.modelVersion,

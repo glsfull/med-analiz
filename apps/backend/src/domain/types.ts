@@ -29,6 +29,15 @@ export interface UserAccount {
   deletedAt?: string;
 }
 
+export interface AiSettings {
+  provider: "rule-based" | "deepseek";
+  apiKeyConfigured: boolean;
+  apiKeyLast4?: string;
+  model: string;
+  updatedAt: string;
+  updatedBy?: string;
+}
+
 export type AnalysisStatus =
   | "uploaded"
   | "ocr_pending"
@@ -60,6 +69,9 @@ export interface ExtractedMarker {
   unit?: string;
   referenceRange?: string;
   status: "low" | "normal" | "high" | "critical" | "unknown";
+  severity: "normal" | "attention" | "danger" | "critical" | "unknown";
+  description: string;
+  patientComment: string;
   confidence: number;
   source: "ocr" | "user";
 }
@@ -69,7 +81,10 @@ export interface Interpretation {
   analysisId: string;
   summary: string;
   deviations: string[];
+  normalMarkers: string[];
+  possibleReasons: string[];
   recommendations: string[];
+  urgentWarnings: string[];
   confidence: number;
   disclaimer: string;
   modelVersion: string;

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { getHealthStatus } from "../apps/backend/src/health.js";
-import { renderAdminShell, renderLandingShell, renderShell } from "../apps/frontend/src/render.js";
+import {
+  renderAdminShell,
+  renderLandingShell,
+  renderSeoPageShell,
+  renderShell
+} from "../apps/frontend/src/render.js";
 
 describe("stage 1 scaffold", () => {
   it("returns a stable backend health payload", () => {
@@ -29,17 +34,21 @@ describe("stage 1 scaffold", () => {
     expect(shell).not.toContain("Админ-панель");
     expect(shell).toContain("Согласие на обработку персональных данных");
     expect(shell).toContain("20 МБ");
+    expect(shell).toContain("Переключить тему");
+    expect(shell).toContain("сильно выше");
+    expect(shell).toContain("Я всего лишь искусственный интеллект");
   });
 
   it("renders the pre-registration landing page", () => {
     const shell = renderLandingShell();
 
-    expect(shell).toContain("Главная страница до регистрации");
+    expect(shell).toContain("Расшифровка медицинских анализов");
     expect(shell).toContain("Кабинет пациента");
     expect(shell).toContain("Кабинет администратора");
     expect(shell).toContain('href="/app"');
     expect(shell).toContain('href="/admin/site.ru"');
-    expect(shell).toContain("Nuxt UI dashboard style");
+    expect(shell).toContain('href="/analizy-krovi"');
+    expect(shell).toContain("application/ld+json");
   });
 
   it("renders a separate admin cabinet shell", () => {
@@ -51,6 +60,17 @@ describe("stage 1 scaffold", () => {
     expect(shell).toContain("/admin/site.ru");
     expect(shell).toContain("Очередь проверки");
     expect(shell).toContain("Справочник показателей");
+    expect(shell).toContain("AI советник");
+    expect(shell).toContain("DeepSeek");
     expect(shell).toContain('href="/app"');
+  });
+
+  it("renders SEO medical analysis pages with breadcrumbs and schema markup", () => {
+    const shell = renderSeoPageShell("blood");
+
+    expect(shell).toContain("Расшифровка медицинских анализов крови");
+    expect(shell).toContain("Хлебные крошки");
+    expect(shell).toContain("MedicalWebPage");
+    expect(shell).toContain("Лейкоциты");
   });
 });

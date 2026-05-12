@@ -192,8 +192,22 @@ describe("backend MVP API", () => {
       modelVersion: "rule-based-ai-adapter-v1",
       promptVersion: "stage-4-interpretation-v1",
       dictionaryVersion: "stage-4-rf-lab-v1",
-      disclaimer: "Сервис не ставит диагноз и не заменяет консультацию врача."
+      disclaimer:
+        "Я всего лишь искусственный интеллект: не ставлю диагнозы и не заменяю врача. Интерпретация предварительная, с результатами стоит обратиться к врачу."
     });
+    expect(created.body.analysis.markers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          canonicalName: "leukocytes",
+          description: "Лейкоциты участвуют в иммунной защите организма.",
+          severity: "normal",
+          patientComment: expect.stringContaining("показатель в норме")
+        })
+      ])
+    );
+    expect(created.body.analysis.interpretation.possibleReasons).toEqual(
+      expect.arrayContaining([expect.stringContaining("Снижение может встречаться при анемии")])
+    );
 
     const history = await jsonRequest("/analyses", {
       method: "GET",
@@ -268,6 +282,42 @@ describe("backend MVP API", () => {
     expect(audit.body.auditLogs.map((entry: { action: string }) => entry.action)).toEqual(
       expect.arrayContaining(["user.registered"])
     );
+  });
+
+  it("allows admins to configure AI provider settings without exposing the secret", async () => {
+    const adminRegistration = await jsonRequest("/auth/register", {
+      method: "POST",
+      body: { email: "settings-admin@example.test", password: "admin-password", role: "admin" }
+    });
+
+    const updated = await jsonRequest("/admin/ai-settings", {
+      method: "PATCH",
+      token: adminRegistration.body.accessToken,
+      body: {
+        provider: "deepseek",
+        apiKey: "sk-deepseek-test-123456",
+        model: "deepseek-chat"
+      }
+    });
+
+    expect(updated.status).toBe(200);
+    expect(updated.body.aiSettings).toMatchObject({
+      provider: "deepseek",
+      apiKeyConfigured: true,
+      apiKeyLast4: "3456",
+      model: "deepseek-chat"
+    });
+    expect(JSON.stringify(updated.body.aiSettings)).not.toContain("sk-deepseek-test");
+
+    const loaded = await jsonRequest("/admin/ai-settings", {
+      method: "GET",
+      token: adminRegistration.body.accessToken
+    });
+    expect(loaded.body.aiSettings).toMatchObject({
+      provider: "deepseek",
+      apiKeyConfigured: true,
+      apiKeyLast4: "3456"
+    });
   });
 
   async function registerPatient() {

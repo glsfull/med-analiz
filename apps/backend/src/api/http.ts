@@ -196,6 +196,24 @@ export function createApiHandler(context: ApiContext) {
           }
           return send(response, 200, { auditLogs: context.store.auditLogs });
         }
+        if (method === "GET" && url.pathname === "/admin/ai-settings") {
+          if (!user.twoFactorEnabled) {
+            return send(response, 403, { error: "admin_2fa_required" });
+          }
+          return send(response, 200, { aiSettings: context.store.aiSettings });
+        }
+        if (method === "PATCH" && url.pathname === "/admin/ai-settings") {
+          if (!user.twoFactorEnabled) {
+            return send(response, 403, { error: "admin_2fa_required" });
+          }
+          const body = await readJson(request);
+          const provider = body.provider === "deepseek" ? "deepseek" : "rule-based";
+          const apiKey = typeof body.apiKey === "string" ? body.apiKey : undefined;
+          const model = typeof body.model === "string" ? body.model : undefined;
+          return send(response, 200, {
+            aiSettings: context.store.updateAiSettings({ provider, apiKey, model }, user.id)
+          });
+        }
       }
 
       return send(response, 404, { error: "not_found" });

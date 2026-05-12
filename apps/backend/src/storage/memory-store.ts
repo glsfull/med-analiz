@@ -3,6 +3,7 @@ import type {
   Analysis,
   AuditLog,
   ConsentState,
+  AiSettings,
   UserAccount,
   UserProfile,
   UserRole
@@ -26,8 +27,17 @@ export class MemoryStore {
   readonly refreshTokens = new Map<string, string>();
   readonly auditLogs: AuditLog[] = [];
   readonly loginGuards = new Map<string, LoginGuardState>();
+  private aiSecret?: string;
+  aiSettings: AiSettings;
 
-  constructor(private readonly now: () => Date = () => new Date()) {}
+  constructor(private readonly now: () => Date = () => new Date()) {
+    this.aiSettings = {
+      provider: "rule-based",
+      apiKeyConfigured: false,
+      model: "rule-based-ai-adapter-v1",
+      updatedAt: this.now().toISOString()
+    };
+  }
 
   createUser(email: string, password: string, role: UserRole = "patient"): UserAccount {
     if ([...this.users.values()].some((user) => user.email === email && !user.deletedAt)) {
@@ -121,6 +131,33 @@ export class MemoryStore {
     this.analyses.set(analysis.id, analysis);
     this.writeAudit(analysis.ownerId, "analysis.created", "analysis", analysis.id, {});
     return analysis;
+  }
+
+  updateAiSettings(
+    settings: { provider?: AiSettings["provider"]; apiKey?: string; model?: string },
+    actorId: string
+  ): AiSettings {
+    const apiKey = settings.apiKey?.trim();
+    if (apiKey) {
+      this.aiSecret = apiKey;
+    }
+    this.aiSettings = {
+      provider: settings.provider ?? this.aiSettings.provider,
+      apiKeyConfigured: Boolean(this.aiSecret),
+      apiKeyLast4: this.aiSecret ? this.aiSecret.slice(-4) : undefined,
+      model: settings.model?.trim() || this.aiSettings.model,
+      updatedAt: this.now().toISOString(),
+      updatedBy: actorId
+    };
+    this.writeAudit(actorId, "admin.ai_settings_updated", "session", actorId, {
+      provider: this.aiSettings.provider,
+      apiKeyConfigured: this.aiSettings.apiKeyConfigured
+    });
+    return this.aiSettings;
+  }
+
+  getAiSecret(): string | undefined {
+    return this.aiSecret;
   }
 
   writeAudit(
