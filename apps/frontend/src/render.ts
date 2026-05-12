@@ -2,13 +2,9 @@ import { serviceNames } from "@med-analiz/shared";
 
 const statuses = ["uploaded", "OCR", "AI", "needs_review", "completed", "error"];
 
-export function renderShell(): string {
-  return `<!doctype html>
-<html lang="ru">
-  <head>
+const sharedHead = `
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Мои Анализы</title>
     <style>
       :root {
         color-scheme: light;
@@ -34,7 +30,7 @@ export function renderShell(): string {
       body { margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
       button, input, select { font: inherit; }
       button { cursor: pointer; }
-      a { color: inherit; }
+      a { color: inherit; text-decoration: none; }
       .app { min-height: 100vh; display: grid; grid-template-columns: 280px minmax(0, 1fr); transition: grid-template-columns .2s ease; }
       .app.sidebar-collapsed { grid-template-columns: 76px minmax(0, 1fr); }
       .sidebar { position: sticky; top: 0; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); padding: 12px; display: grid; grid-template-rows: auto 1fr auto; gap: 12px; overflow: hidden; }
@@ -46,8 +42,8 @@ export function renderShell(): string {
       .collapse-toggle, .icon-btn { width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--muted); display: grid; place-items: center; flex: 0 0 auto; }
       .collapse-toggle:hover, .icon-btn:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-soft); }
       .nav { display: grid; align-content: start; gap: 4px; padding-top: 8px; }
-      .nav button { min-height: 40px; border: 0; border-radius: 8px; background: transparent; color: #334155; padding: 9px 10px; text-align: left; display: flex; gap: 10px; align-items: center; font-weight: 600; }
-      .nav button[aria-current="page"], .nav button:hover { background: var(--surface-muted); color: var(--text); }
+      .nav button, .nav a { min-height: 40px; border: 0; border-radius: 8px; background: transparent; color: #334155; padding: 9px 10px; text-align: left; display: flex; gap: 10px; align-items: center; font-weight: 600; }
+      .nav button[aria-current="page"], .nav a[aria-current="page"], .nav button:hover, .nav a:hover { background: var(--surface-muted); color: var(--text); }
       .nav-icon { width: 20px; text-align: center; color: var(--muted); flex: 0 0 auto; }
       .workspace { border-top: 1px solid var(--border); padding-top: 12px; display: grid; gap: 12px; }
       .workspace-card { display: flex; align-items: center; gap: 10px; min-height: 44px; }
@@ -74,44 +70,22 @@ export function renderShell(): string {
       .metrics { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 14px; }
       .metric { padding: 14px; }
       .metric strong { display: block; font-size: 24px; margin-bottom: 4px; }
-      .dropzone { border: 1px dashed var(--border-strong); background: var(--surface-soft); border-radius: 8px; padding: 26px; display: grid; gap: 14px; text-align: center; min-height: 230px; place-items: center; }
-      .dropzone.dragover { border-color: var(--primary); background: #ecfdf5; }
       .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-      .btn { border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); padding: 9px 12px; font-weight: 700; min-height: 38px; }
+      .btn { border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); padding: 9px 12px; font-weight: 700; min-height: 38px; display: inline-flex; align-items: center; justify-content: center; }
       .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
       .btn.danger { border-color: #fecaca; color: var(--danger); }
-      .upload-feedback { min-height: 24px; font-weight: 700; }
-      .upload-feedback.error { color: var(--danger); }
-      .upload-feedback.ok { color: var(--ok); }
-      .timeline { display: grid; gap: 10px; }
-      .step { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
-      .dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-muted); color: var(--muted); font-weight: 800; font-size: 12px; }
-      .step.done .dot { background: #dcfce7; color: var(--ok); }
-      .step.current .dot { background: #dbeafe; color: var(--accent); }
       .badge { display: inline-flex; align-items: center; min-height: 24px; border-radius: 999px; padding: 3px 9px; font-size: 12px; font-weight: 800; white-space: nowrap; }
       .badge.ok { color: var(--ok); background: #dcfce7; }
       .badge.warn { color: var(--warn); background: #fef3c7; }
       .badge.danger { color: var(--danger); background: #fee2e2; }
       .badge.info { color: var(--accent); background: #dbeafe; }
-      .status-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-      .status-tabs button { border: 1px solid var(--border); border-radius: 999px; background: #fff; padding: 7px 10px; }
-      .status-tabs button[aria-pressed="true"] { border-color: var(--primary); color: var(--primary-dark); background: #ecfdf5; }
-      .report-head { display: flex; justify-content: space-between; gap: 14px; align-items: start; }
-      .disclaimer { border-left: 3px solid var(--primary); background: #ecfdf5; padding: 12px 14px; border-radius: 6px; line-height: 1.5; }
-      .summary-list { display: grid; gap: 10px; padding-left: 20px; }
       table { width: 100%; border-collapse: collapse; }
       th, td { padding: 11px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
       th { color: var(--muted); font-size: 12px; font-weight: 800; }
-      .history { display: grid; gap: 12px; margin-top: 14px; }
-      .analysis-card { padding: 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; box-shadow: none; }
-      .filters { display: flex; flex-wrap: wrap; gap: 10px; }
-      .filters select, .filters input { border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; background: #fff; min-width: 150px; min-height: 38px; }
-      .auth-grid, .admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+      .admin-table { overflow-x: auto; }
       .field { display: grid; gap: 7px; margin-bottom: 12px; }
       .field input, .field select { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: #fff; min-height: 38px; }
       .checkbox { display: flex; gap: 9px; align-items: flex-start; line-height: 1.4; }
-      .admin-table { overflow-x: auto; }
-      .mobile-menu { display: none; }
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
       @media (max-width: 980px) {
@@ -120,9 +94,9 @@ export function renderShell(): string {
         .sidebar-top { justify-content: space-between; }
         .collapse-toggle { display: none; }
         .nav { display: flex; overflow-x: auto; padding: 4px 0 2px; }
-        .nav button { white-space: nowrap; }
+        .nav button, .nav a { white-space: nowrap; }
         .workspace { display: none; }
-        .grid, .auth-grid, .admin-grid { grid-template-columns: 1fr; }
+        .grid, .auth-grid, .admin-grid, .landing-grid { grid-template-columns: 1fr; }
         .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .topbar { position: static; flex-wrap: wrap; padding: 14px 16px; }
         .command { order: 3; min-width: 100%; }
@@ -135,6 +109,107 @@ export function renderShell(): string {
         .analysis-card, .step, .report-head { grid-template-columns: 1fr; display: grid; }
         th:nth-child(4), td:nth-child(4) { display: none; }
       }
+    </style>`;
+
+const sidebarScript = `
+      const app = document.querySelector('.app');
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+          const collapsed = app.classList.toggle('sidebar-collapsed');
+          sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
+          sidebarToggle.setAttribute('aria-label', collapsed ? 'Развернуть меню' : 'Свернуть меню');
+          sidebarToggle.textContent = collapsed ? '›' : '‹';
+        });
+      }`;
+
+export function renderLandingShell(): string {
+  return `<!doctype html>
+<html lang="ru">
+  <head>
+    <title>Мои Анализы · Главная</title>
+    ${sharedHead}
+    <style>
+      .landing { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+      .landing-header { min-height: 64px; background: rgba(255,255,255,.9); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 24px; position: sticky; top: 0; z-index: 2; }
+      .landing-nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      .landing-main { padding: 24px; display: grid; gap: 18px; align-content: start; }
+      .landing-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .75fr); gap: 18px; align-items: stretch; }
+      .hero-panel { min-height: 430px; display: grid; align-content: center; gap: 18px; }
+      .hero-panel h1 { margin: 0; font-size: 42px; line-height: 1.08; letter-spacing: 0; max-width: 760px; }
+      .hero-panel p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.6; max-width: 680px; }
+      .preview-stack { display: grid; gap: 12px; align-content: start; }
+      .mini-row { display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-soft); }
+      .stat-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+      @media (max-width: 640px) { .landing-header { align-items: flex-start; flex-direction: column; padding: 14px 16px; } .landing-main { padding: 16px; } .hero-panel h1 { font-size: 32px; } .stat-strip { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="landing" data-service="${serviceNames.frontend}">
+      <header class="landing-header">
+        <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">+</span><span>Мои Анализы</span></a>
+        <nav class="landing-nav" aria-label="Вход в кабинеты">
+          <a class="btn" href="/app">Кабинет пациента</a>
+          <a class="btn primary" href="/admin">Кабинет администратора</a>
+        </nav>
+      </header>
+      <main class="landing-main">
+        <section class="landing-grid">
+          <div class="panel hero-panel">
+            <span class="badge info">Nuxt UI dashboard style</span>
+            <h1>Главная страница до регистрации</h1>
+            <p>Легкий dashboard-интерфейс для загрузки анализов, просмотра статусов обработки и перехода в отдельные закрытые кабинеты пациента и администратора.</p>
+            <div class="actions">
+              <a class="btn primary" href="/app">Войти как пациент</a>
+              <a class="btn" href="/admin">Открыть админ-кабинет</a>
+            </div>
+          </div>
+          <aside class="panel preview-stack" aria-label="Превью интерфейса">
+            <div class="report-head"><h2>Очередь анализов</h2><span class="badge ok">online</span></div>
+            <div class="mini-row"><span class="avatar">ОК</span><div><strong>Общий анализ крови</strong><br /><span class="muted">OCR распознавание</span></div><span class="badge info">2 мин</span></div>
+            <div class="mini-row"><span class="avatar">БХ</span><div><strong>Биохимия</strong><br /><span class="muted">Требует проверки</span></div><span class="badge warn">review</span></div>
+            <div class="mini-row"><span class="avatar">AI</span><div><strong>Интерпретация</strong><br /><span class="muted">Безопасное резюме</span></div><span class="badge ok">готово</span></div>
+          </aside>
+        </section>
+        <section class="stat-strip">
+          <div class="metric"><strong>20 МБ</strong><span class="muted">лимит загрузки файла</span></div>
+          <div class="metric"><strong>/app</strong><span class="muted">отдельный кабинет пациента</span></div>
+          <div class="metric"><strong>/admin</strong><span class="muted">закрытая ссылка администратора</span></div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>`;
+}
+
+export function renderShell(): string {
+  return `<!doctype html>
+<html lang="ru">
+  <head>
+    <title>Мои Анализы · Кабинет пациента</title>
+    ${sharedHead}
+    <style>
+      .dropzone { border: 1px dashed var(--border-strong); background: var(--surface-soft); border-radius: 8px; padding: 26px; display: grid; gap: 14px; text-align: center; min-height: 230px; place-items: center; }
+      .dropzone.dragover { border-color: var(--primary); background: #ecfdf5; }
+      .upload-feedback { min-height: 24px; font-weight: 700; }
+      .upload-feedback.error { color: var(--danger); }
+      .upload-feedback.ok { color: var(--ok); }
+      .timeline { display: grid; gap: 10px; }
+      .step { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+      .dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-muted); color: var(--muted); font-weight: 800; font-size: 12px; }
+      .step.done .dot { background: #dcfce7; color: var(--ok); }
+      .step.current .dot { background: #dbeafe; color: var(--accent); }
+      .status-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+      .status-tabs button { border: 1px solid var(--border); border-radius: 999px; background: #fff; padding: 7px 10px; }
+      .status-tabs button[aria-pressed="true"] { border-color: var(--primary); color: var(--primary-dark); background: #ecfdf5; }
+      .report-head { display: flex; justify-content: space-between; gap: 14px; align-items: start; }
+      .disclaimer { border-left: 3px solid var(--primary); background: #ecfdf5; padding: 12px 14px; border-radius: 6px; line-height: 1.5; }
+      .summary-list { display: grid; gap: 10px; padding-left: 20px; }
+      .history { display: grid; gap: 12px; margin-top: 14px; }
+      .analysis-card { padding: 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; box-shadow: none; }
+      .filters { display: flex; flex-wrap: wrap; gap: 10px; }
+      .filters select, .filters input { border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; background: #fff; min-width: 150px; min-height: 38px; }
+      .auth-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
     </style>
   </head>
   <body>
@@ -149,7 +224,7 @@ export function renderShell(): string {
           <button type="button" data-view-target="report"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">Результат</span></button>
           <button type="button" data-view-target="history"><span class="nav-icon" aria-hidden="true">◷</span><span class="nav-label">История</span></button>
           <button type="button" data-view-target="auth"><span class="nav-icon" aria-hidden="true">○</span><span class="nav-label">Профиль</span></button>
-          <button type="button" data-view-target="admin"><span class="nav-icon" aria-hidden="true">⚙</span><span class="nav-label">Админ</span></button>
+          <a href="/admin"><span class="nav-icon" aria-hidden="true">⚙</span><span class="nav-label">Админ-кабинет</span></a>
         </nav>
         <div class="workspace">
           <div class="workspace-card"><span class="avatar">АП</span><span class="workspace-meta">Анна Петрова<br /><small class="muted">beta, 2 из 5 анализов</small></span></div>
@@ -165,7 +240,7 @@ export function renderShell(): string {
           <label class="command" aria-label="Командная строка"><span aria-hidden="true">⌕</span><input type="search" placeholder="Поиск анализов, статусов, показателей" /></label>
           <div class="top-actions">
             <button class="icon-btn" type="button" aria-label="Уведомления">○</button>
-            <button class="icon-btn" type="button" aria-label="Настройки">⚙</button>
+            <a class="icon-btn" href="/admin" aria-label="Кабинет администратора">⚙</a>
             <div class="profile" aria-label="Текущий профиль"><span class="avatar">АП</span><span class="user-details">Анна Петрова<br /><small class="muted">пациент</small></span></div>
           </div>
         </header>
@@ -263,13 +338,6 @@ export function renderShell(): string {
             </div>
           </section>
 
-          <section id="admin" class="view" aria-labelledby="admin-title">
-            <div class="admin-grid">
-              <section class="panel"><h2 id="admin-title">Админ-панель</h2><div class="metrics"><div class="metric"><strong>42</strong><span class="muted">загрузки сегодня</span></div><div class="metric"><strong>4</strong><span class="muted">ошибки OCR</span></div></div></section>
-              <section class="panel"><h2>Очередь проверки</h2><p><span class="badge warn">needs_review</span> Низкая уверенность по 2 показателям.</p><p><span class="badge danger">error</span> Не удалось прочитать скан PDF.</p></section>
-            </div>
-            <section class="panel admin-table"><h2>Справочник показателей</h2><table><thead><tr><th>Показатель</th><th>Синонимы</th><th>Единица</th><th>Версия</th></tr></thead><tbody><tr><td>Гемоглобин</td><td>Hb, HGB</td><td>г/л</td><td>2026.05</td></tr><tr><td>Лейкоциты</td><td>WBC</td><td>10^9/л</td><td>2026.05</td></tr></tbody></table></section>
-          </section>
         </div>
       </main>
     </div>
@@ -305,15 +373,72 @@ export function renderShell(): string {
         document.getElementById('status-badge').textContent = button.dataset.status;
       }));
 
-      const app = document.querySelector('.app');
-      const sidebarToggle = document.getElementById('sidebar-toggle');
-      sidebarToggle.addEventListener('click', () => {
-        const collapsed = app.classList.toggle('sidebar-collapsed');
-        sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
-        sidebarToggle.setAttribute('aria-label', collapsed ? 'Развернуть меню' : 'Свернуть меню');
-        sidebarToggle.textContent = collapsed ? '›' : '‹';
-      });
+${sidebarScript}
     </script>
+  </body>
+</html>`;
+}
+
+export function renderAdminShell(): string {
+  return `<!doctype html>
+<html lang="ru">
+  <head>
+    <title>Мои Анализы · Администратор</title>
+    ${sharedHead}
+    <style>
+      .admin-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 18px; }
+      .queue { display: grid; gap: 12px; }
+      .queue-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-soft); }
+    </style>
+  </head>
+  <body>
+    <div class="app" data-service="${serviceNames.frontend}">
+      <aside class="sidebar" aria-label="Навигация администратора">
+        <div class="sidebar-top">
+          <a class="brand" href="/admin"><span class="brand-mark" aria-hidden="true">A</span><span>Админ</span></a>
+          <button class="collapse-toggle" id="sidebar-toggle" type="button" aria-label="Свернуть меню" aria-expanded="true">‹</button>
+        </div>
+        <nav class="nav">
+          <a href="/admin" aria-current="page"><span class="nav-icon" aria-hidden="true">□</span><span class="nav-label">Обзор</span></a>
+          <a href="/app"><span class="nav-icon" aria-hidden="true">○</span><span class="nav-label">Кабинет пациента</span></a>
+          <a href="/"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Главная</span></a>
+        </nav>
+        <div class="workspace">
+          <div class="workspace-card"><span class="avatar">АД</span><span class="workspace-meta">Администратор<br /><small class="muted">закрытый кабинет</small></span></div>
+          <div class="side-note">Административный раздел вынесен на отдельный URL /admin и не является вкладкой кабинета пациента.</div>
+        </div>
+      </aside>
+      <main class="main">
+        <header class="topbar">
+          <div class="topbar-title"><h1>Кабинет администратора</h1><p>Мониторинг загрузок, ошибок OCR и справочников</p></div>
+          <label class="command" aria-label="Поиск по админ-разделу"><span aria-hidden="true">⌕</span><input type="search" placeholder="Поиск пользователей, файлов, показателей" /></label>
+          <div class="top-actions"><a class="btn" href="/app">Кабинет пациента</a><a class="btn primary" href="/">Главная</a></div>
+        </header>
+        <div class="content">
+          <section class="metrics" aria-label="Административные метрики">
+            <div class="metric"><strong>42</strong><span class="muted">загрузки сегодня</span></div>
+            <div class="metric"><strong>4</strong><span class="muted">ошибки OCR</span></div>
+            <div class="metric"><strong>7</strong><span class="muted">ожидают проверки</span></div>
+            <div class="metric"><strong>2026.05</strong><span class="muted">версия справочника</span></div>
+          </section>
+          <section class="admin-grid">
+            <section class="panel">
+              <h2>Очередь проверки</h2>
+              <div class="queue">
+                <div class="queue-item"><div><strong>analysis-184.pdf</strong><br /><span class="muted">Низкая уверенность по 2 показателям</span></div><span class="badge warn">needs_review</span></div>
+                <div class="queue-item"><div><strong>scan-092.png</strong><br /><span class="muted">Не удалось прочитать часть таблицы</span></div><span class="badge danger">error</span></div>
+                <div class="queue-item"><div><strong>blood-771.pdf</strong><br /><span class="muted">Готов к ручной валидации</span></div><span class="badge info">AI</span></div>
+              </div>
+            </section>
+            <section class="panel admin-table">
+              <h2>Справочник показателей</h2>
+              <table><thead><tr><th>Показатель</th><th>Синонимы</th><th>Единица</th><th>Версия</th></tr></thead><tbody><tr><td>Гемоглобин</td><td>Hb, HGB</td><td>г/л</td><td>2026.05</td></tr><tr><td>Лейкоциты</td><td>WBC</td><td>10^9/л</td><td>2026.05</td></tr><tr><td>Тромбоциты</td><td>PLT</td><td>10^9/л</td><td>2026.05</td></tr></tbody></table>
+            </section>
+          </section>
+        </div>
+      </main>
+    </div>
+    <script>${sidebarScript}</script>
   </body>
 </html>`;
 }
