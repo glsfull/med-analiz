@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="591" height="1280" viewBox="0 0 591 1280">
+    <rect width="591" height="1280" fill="#f8fafc"/>
+    <rect x="0" y="0" width="591" height="422" fill="#dcfce7"/>
+    <circle cx="519" cy="88" r="42" fill="#ffffff" opacity="0.82"/>
+    <circle cx="68" cy="1202" r="44" fill="#dcfce7" opacity="0.75"/>
+    <text x="40" y="98" font-size="44" font-weight="900" fill="#0f172a">ИИ Ассистент</text>
+    <foreignObject x="40" y="120" width="511" height="104">
+      <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:Arial,sans-serif;font-size:25px;line-height:1.28;color:#64748b;font-weight:700">Ответы и агентские действия в одном чате</div>
+    </foreignObject>
+    <rect x="40" y="238" width="114" height="34" rx="17" fill="#ffffff"/><text x="53" y="261" font-size="14" font-weight="800" fill="#059669">Спросить AI</text><rect x="40" y="283" width="162" height="34" rx="17" fill="#dbeafe"/><text x="53" y="306" font-size="14" font-weight="800" fill="#2563eb">Сравнить динамику</text><rect x="40" y="328" width="178" height="34" rx="17" fill="#ffffff"/><text x="53" y="351" font-size="14" font-weight="800" fill="#059669">Создать напоминание</text>
+    
+    <g transform="translate(171 330)">
+      <rect width="236" height="486" rx="34" fill="#0f172a"/>
+      <rect x="12" y="14" width="212" height="458" rx="24" fill="#f8fafc"/>
+      <rect x="76" y="27" width="84" height="7" rx="4" fill="#cbd5e1"/>
+      <circle cx="42" cy="64" r="18" fill="#dcfce7"/>
+      <text x="37" y="71" font-size="18" font-weight="900" fill="#059669">+</text>
+      <text x="68" y="61" font-size="16" font-weight="800" fill="#0f172a">Мои Анализы</text>
+      <text x="68" y="81" font-size="11" fill="#64748b">вариант 2</text>
+      <rect x="28" y="108" width="180" height="82" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+      <text x="44" y="137" font-size="18" font-weight="900" fill="#0f172a">Чат</text>
+      <text x="44" y="163" font-size="12" fill="#64748b">Предварительная информация</text>
+      
+        <rect x="28" y="214" width="180" height="56" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <text x="44" y="241" font-size="14" font-weight="800" fill="#0f172a">Ассистент</text>
+        <rect x="120" y="226" width="74" height="28" rx="14" fill="#dbeafe"/>
+        <text x="131" y="245" font-size="10" font-weight="800" fill="#2563eb">объяснил отклонения</text>
+        <rect x="28" y="286" width="180" height="56" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <text x="44" y="313" font-size="14" font-weight="800" fill="#0f172a">Агент</text>
+        <rect x="120" y="298" width="74" height="28" rx="14" fill="#dcfce7"/>
+        <text x="131" y="317" font-size="10" font-weight="800" fill="#059669">создал вопросы врачу</text>
+        <rect x="28" y="358" width="180" height="56" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <text x="44" y="385" font-size="14" font-weight="800" fill="#0f172a">Агент</text>
+        <rect x="120" y="370" width="74" height="28" rx="14" fill="#fef3c7"/>
+        <text x="131" y="389" font-size="10" font-weight="800" fill="#b45309">сравнил динамику</text>
+      <rect x="28" y="438" width="180" height="20" rx="10" fill="#059669"/>
+    </g>
+    <rect x="40" y="1176" width="511" height="64" rx="18" fill="#ffffff" stroke="#e2e8f0"/>
+    <text x="64" y="1203" font-size="15" font-weight="800" fill="#0f172a">Не является диагнозом</text>
+    <text x="64" y="1225" font-size="13" fill="#64748b">Обсудите результаты и лечение с врачом.</text>
+  </svg>

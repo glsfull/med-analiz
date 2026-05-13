@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="591" height="1280" viewBox="0 0 591 1280">
+    <rect width="591" height="1280" fill="#f8fafc"/>
+    <rect x="0" y="0" width="591" height="422" fill="#dbeafe"/>
+    <circle cx="519" cy="88" r="42" fill="#ffffff" opacity="0.82"/>
+    <circle cx="68" cy="1202" r="44" fill="#dcfce7" opacity="0.75"/>
+    <text x="40" y="98" font-size="44" font-weight="900" fill="#0f172a">Оценка риска</text>
+    <foreignObject x="40" y="120" width="511" height="104">
+      <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:Arial,sans-serif;font-size:25px;line-height:1.28;color:#64748b;font-weight:700">Чекапы и отклонения без постановки диагноза</div>
+    </foreignObject>
+    <rect x="40" y="238" width="122" height="34" rx="17" fill="#ffffff"/><text x="53" y="261" font-size="14" font-weight="800" fill="#059669">Риск-профиль</text><rect x="40" y="283" width="122" height="34" rx="17" fill="#dbeafe"/><text x="53" y="306" font-size="14" font-weight="800" fill="#2563eb">План чекапов</text><rect x="40" y="328" width="194" height="34" rx="17" fill="#ffffff"/><text x="53" y="351" font-size="14" font-weight="800" fill="#059669">Что обсудить с врачом</text>
+    
+    <g transform="translate(192 330)">
+      <rect width="236" height="486" rx="34" fill="#0f172a"/>
+      <rect x="12" y="14" width="212" height="458" rx="24" fill="#f8fafc"/>
+      <rect x="76" y="27" width="84" height="7" rx="4" fill="#cbd5e1"/>
+      <circle cx="42" cy="64" r="18" fill="#dcfce7"/>
+      <text x="37" y="71" font-size="18" font-weight="900" fill="#059669">+</text>
+      <text x="68" y="61" font-size="16" font-weight="800" fill="#0f172a">Мои Анализы</text>
+      <text x="68" y="81" font-size="11" fill="#64748b">вариант 5</text>
+      <rect x="28" y="108" width="180" height="82" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+      <text x="44" y="137" font-size="18" font-weight="900" fill="#0f172a">ОАК</text>
+      <text x="44" y="163" font-size="12" fill="#64748b">Предварительная информация</text>
+      
+        <rect x="28" y="214" width="180" height="56" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <text x="44" y="241" font-size="14" font-weight="800" fill="#0f172a">Общий риск</text>
+        <rect x="120" y="226" width="74" height="28" rx="14" fill="#fef3c7"/>
+        <text x="131" y="245" font-size="10" font-weight="800" fill="#b45309">требует внимания</text>
+        <rect x="28" y="286" width="180" height="56" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <text x="44" y="313" font-size="14" font-weight="800" fill="#0f172a">Чекап</text>
+        <rect x="120" y="298" width="74" height="28" rx="14" fill="#dbeafe"/>
+        <text x="131" y="317" font-size="10" font-weight="800" fill="#2563eb">через 30 дней</text>
+        <rect x="28" y="358" width="180" height="56" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <text x="44" y="385" font-size="14" font-weight="800" fill="#0f172a">Врач</text>
+        <rect x="120" y="370" width="74" height="28" rx="14" fill="#fee2e2"/>
+        <text x="131" y="389" font-size="10" font-weight="800" fill="#dc2626">обсудить WBC</text>
+      <rect x="28" y="438" width="180" height="20" rx="10" fill="#059669"/>
+    </g>
+    <rect x="40" y="1176" width="511" height="64" rx="18" fill="#ffffff" stroke="#e2e8f0"/>
+    <text x="64" y="1203" font-size="15" font-weight="800" fill="#0f172a">Не является диагнозом</text>
+    <text x="64" y="1225" font-size="13" fill="#64748b">Обсудите результаты и лечение с врачом.</text>
+  </svg>

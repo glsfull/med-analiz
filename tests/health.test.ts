@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { getHealthStatus } from "../apps/backend/src/health.js";
 import {
   renderAdminShell,
@@ -88,5 +90,28 @@ describe("stage 1 scaffold", () => {
     expect(shell).toContain("Хлебные крошки");
     expect(shell).toContain("MedicalWebPage");
     expect(shell).toContain("Лейкоциты");
+  });
+
+  it("keeps issue 23 screenshot specification and required store assets", () => {
+    expect(existsSync(resolve("docs/store-screenshots-spec.md"))).toBe(true);
+    expect(existsSync(resolve("docs/план работ исправления ошибок.md"))).toBe(true);
+
+    const screenshotGroups = [
+      "overview",
+      "risk-checkups",
+      "medication-reminders",
+      "analysis-interpretation",
+      "ai-assistant-agent-chat"
+    ];
+
+    for (const group of screenshotGroups) {
+      for (let index = 1; index <= 5; index += 1) {
+        expect(
+          existsSync(
+            resolve(`docs/screenshots/store/${group}-${String(index).padStart(2, "0")}.png`)
+          )
+        ).toBe(true);
+      }
+    }
   });
 });
