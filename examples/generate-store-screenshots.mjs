@@ -10,73 +10,73 @@ const groups = [
   {
     slug: "overview",
     title: "Мои Анализы",
-    subtitle: "Понятная расшифровка анализов и контроль здоровья",
+    subtitle: "анализы, риски, лекарства и AI чат в одном приложении",
     mode: "overview",
     size: { width: 800, height: 800 },
-    highlights: ["AI-расшифровка", "Риски", "Напоминания"]
+    accent: "#20c997"
   },
   {
     slug: "risk-checkups",
-    title: "Риски и чекапы",
-    subtitle: "Видно, что важно обсудить с врачом",
+    title: "Оценка риска",
+    subtitle: "понятные приоритеты и план чекапов",
     mode: "risk",
     size: { width: 591, height: 1280 },
-    highlights: ["Отклонения", "План чекапов", "Вопросы врачу"]
+    accent: "#ff6b6b"
   },
   {
     slug: "medication-reminders",
-    title: "Лекарства",
-    subtitle: "Напоминания по назначению врача",
+    title: "Напоминания",
+    subtitle: "прием лекарств по расписанию врача",
     mode: "meds",
     size: { width: 591, height: 1280 },
-    highlights: ["Принято", "Ожидает", "Push"]
+    accent: "#51cf66"
   },
   {
     slug: "analysis-interpretation",
     title: "Расшифровка",
-    subtitle: "Показатели, нормы и понятное резюме",
+    subtitle: "показатели, нормы и простое резюме",
     mode: "analysis",
     size: { width: 591, height: 1280 },
-    highlights: ["Нормы", "Отклонения", "PDF"]
+    accent: "#4dabf7"
   },
   {
     slug: "ai-assistant-agent-chat",
     title: "AI Ассистент",
-    subtitle: "Ответы и действия агента в одном чате",
+    subtitle: "ответы и агентские действия в одном чате",
     mode: "chat",
     size: { width: 591, height: 1280 },
-    highlights: ["Ответ AI", "Агент", "Действия"]
+    accent: "#9775fa"
   }
 ];
 
 const palette = {
-  bgTop: "#07111f",
-  bgBottom: "#102a3f",
-  surface: "#ffffff",
-  page: "#f8fafc",
-  mint: "#22c55e",
-  mintSoft: "#dcfce7",
-  cyan: "#38bdf8",
-  cyanSoft: "#e0f2fe",
-  blue: "#2563eb",
-  amber: "#f59e0b",
-  amberSoft: "#fef3c7",
-  red: "#ef4444",
-  redSoft: "#fee2e2",
+  ink: "#07111f",
   text: "#0f172a",
   muted: "#64748b",
-  border: "#e2e8f0"
+  page: "#f6f8fb",
+  surface: "#ffffff",
+  border: "#dbe3ee",
+  green: "#12b886",
+  greenSoft: "#d3f9d8",
+  blue: "#228be6",
+  blueSoft: "#d0ebff",
+  red: "#fa5252",
+  redSoft: "#ffe3e3",
+  amber: "#f08c00",
+  amberSoft: "#fff3bf",
+  violet: "#7950f2",
+  violetSoft: "#e5dbff"
 };
 
 function esc(value) {
   return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
-function wrappedText(text, x, y, width, size, weight, color, lineHeight = 1.18) {
+function textBlock(text, x, y, width, size, weight, color, lineHeight = 1.16, limit = 4) {
   const words = String(text).split(" ");
+  const maxChars = Math.max(8, Math.floor(width / (size * 0.52)));
   const lines = [];
   let line = "";
-  const maxChars = Math.max(8, Math.floor(width / (size * 0.54)));
 
   for (const word of words) {
     const next = line ? `${line} ${word}` : word;
@@ -87,10 +87,10 @@ function wrappedText(text, x, y, width, size, weight, color, lineHeight = 1.18) 
       line = next;
     }
   }
-
   if (line) lines.push(line);
+
   return lines
-    .slice(0, 4)
+    .slice(0, limit)
     .map(
       (part, index) =>
         `<text x="${x}" y="${y + index * size * lineHeight}" font-size="${size}" font-weight="${weight}" fill="${color}">${esc(part)}</text>`
@@ -98,140 +98,151 @@ function wrappedText(text, x, y, width, size, weight, color, lineHeight = 1.18) 
     .join("");
 }
 
-function pill(text, x, y, fill, color, width = 118) {
-  return `<rect x="${x}" y="${y}" width="${width}" height="32" rx="16" fill="${fill}"/><text x="${x + 16}" y="${y + 21}" font-size="12" font-weight="800" fill="${color}">${esc(text)}</text>`;
+function capsule(label, x, y, width, fill, color) {
+  return `<rect x="${x}" y="${y}" width="${width}" height="34" rx="17" fill="${fill}"/>
+  <text x="${x + 16}" y="${y + 23}" font-size="13" font-weight="800" fill="${color}">${esc(label)}</text>`;
 }
 
-function metricCard(label, value, status, x, y, fill, color) {
-  return `<rect x="${x}" y="${y}" width="204" height="68" rx="18" fill="#fff" stroke="${palette.border}"/>
-  <text x="${x + 16}" y="${y + 25}" font-size="13" font-weight="800" fill="${palette.text}">${esc(label)}</text>
-  <text x="${x + 16}" y="${y + 49}" font-size="20" font-weight="900" fill="${palette.text}">${esc(value)}</text>
-  <rect x="${x + 126}" y="${y + 20}" width="62" height="28" rx="14" fill="${fill}"/>
-  <text x="${x + 139}" y="${y + 39}" font-size="10" font-weight="900" fill="${color}">${esc(status)}</text>`;
+function row(label, value, status, x, y, width, fill, color, compact = false) {
+  const height = compact ? 66 : 78;
+  const icon = compact ? 15 : 18;
+  const labelSize = compact ? 14 : 16;
+  const valueSize = compact ? 11 : 13;
+  const badgeWidth = compact ? 62 : 70;
+  return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="20" fill="${palette.surface}" stroke="${palette.border}"/>
+  <circle cx="${x + 32}" cy="${y + height / 2}" r="${icon}" fill="${fill}"/>
+  <text x="${x + 58}" y="${y + (compact ? 27 : 32)}" font-size="${labelSize}" font-weight="900" fill="${palette.text}">${esc(label)}</text>
+  <text x="${x + 58}" y="${y + (compact ? 48 : 55)}" font-size="${valueSize}" font-weight="700" fill="${palette.muted}">${esc(value)}</text>
+  <rect x="${x + width - badgeWidth - 20}" y="${y + (compact ? 18 : 24)}" width="${badgeWidth}" height="28" rx="14" fill="${fill}"/>
+  <text x="${x + width - badgeWidth - 2}" y="${y + (compact ? 37 : 43)}" font-size="10" font-weight="900" fill="${color}">${esc(status)}</text>`;
 }
 
-function phone(x, y, variant, mode, scale = 1) {
-  const data = {
-    risk: {
-      title: "Риски",
-      hero: "Средний",
-      note: "3 пункта обсудить",
+function screenData(mode, variant) {
+  const common = {
+    overview: {
+      label: "Главная",
+      headline: variant % 2 === 0 ? "Все под контролем" : "Здоровье на экране",
+      metric: "4 раздела",
+      note: "последнее обновление сегодня",
       rows: [
-        ["Отклонения", "WBC", "важно", palette.redSoft, palette.red],
-        ["Чекап", "30 дней", "план", palette.cyanSoft, palette.blue],
-        ["Врач", "вопросы", "готово", palette.amberSoft, palette.amber]
+        ["Расшифровка", "ОАК готов к просмотру", "AI", palette.blueSoft, palette.blue],
+        ["Риски", "2 важных пункта", "план", palette.redSoft, palette.red],
+        ["Лекарства", "следующий прием 14:00", "push", palette.greenSoft, palette.green]
+      ]
+    },
+    risk: {
+      label: "Чекапы",
+      headline: variant % 2 === 0 ? "Средний риск" : "Нужен контроль",
+      metric: "3 задачи",
+      note: "обсудите с врачом",
+      rows: [
+        ["Лейкоциты", "показатель выше нормы", "важно", palette.redSoft, palette.red],
+        ["Повторить ОАК", "через 7 дней", "чекап", palette.blueSoft, palette.blue],
+        ["Вопросы врачу", "сформированы автоматически", "готово", palette.amberSoft, palette.amber]
       ]
     },
     meds: {
-      title: "Лекарства",
-      hero: "Сегодня",
+      label: "Лекарства",
+      headline: variant % 2 === 0 ? "Прием сегодня" : "Не пропустите",
+      metric: "2 из 3",
       note: "по назначению врача",
       rows: [
-        ["08:00", "принято", "ок", palette.mintSoft, palette.mint],
-        ["14:00", "ожидает", "push", palette.cyanSoft, palette.blue],
-        ["21:00", "напомнить", "план", palette.amberSoft, palette.amber]
+        ["08:00", "препарат принят", "ок", palette.greenSoft, palette.green],
+        ["14:00", "напоминание включено", "push", palette.blueSoft, palette.blue],
+        ["21:00", "ожидает приема", "план", palette.amberSoft, palette.amber]
       ]
     },
     analysis: {
-      title: "ОАК",
-      hero: "Готово",
-      note: "информационная расшифровка",
+      label: "Анализы",
+      headline: variant % 2 === 0 ? "ОАК расшифрован" : "Понятное резюме",
+      metric: "12 показ.",
+      note: "информационная справка",
       rows: [
-        ["Гемоглобин", "165", "выше", palette.amberSoft, palette.amber],
-        ["Лейкоциты", "15.2", "важно", palette.redSoft, palette.red],
-        ["Тромбоциты", "246", "норма", palette.mintSoft, palette.mint]
+        ["Гемоглобин", "165 г/л", "выше", palette.amberSoft, palette.amber],
+        ["Лейкоциты", "15.2 x10^9/л", "важно", palette.redSoft, palette.red],
+        ["Тромбоциты", "246 x10^9/л", "норма", palette.greenSoft, palette.green]
       ]
     },
     chat: {
-      title: "AI чат",
-      hero: "Ассистент",
-      note: "и агентские действия",
+      label: "AI чат",
+      headline: variant % 2 === 0 ? "Ассистент + агент" : "Один диалог",
+      metric: "5 действий",
+      note: "ответы и подготовка задач",
       rows: [
-        ["Ответ", "справка", "AI", palette.cyanSoft, palette.blue],
-        ["Агент", "вопросы", "готово", palette.mintSoft, palette.mint],
-        ["Действие", "напомин.", "план", palette.amberSoft, palette.amber]
-      ]
-    },
-    overview: {
-      title: "Главная",
-      hero: "Здоровье",
-      note: "анализы под рукой",
-      rows: [
-        ["Загрузка", "PDF/фото", "20 МБ", palette.cyanSoft, palette.blue],
-        ["AI-отчет", "готов", "ок", palette.mintSoft, palette.mint],
-        ["Риск", "чекап", "план", palette.amberSoft, palette.amber]
+        ["AI ответ", "объяснил показатели", "чат", palette.blueSoft, palette.blue],
+        ["Агент", "собрал вопросы врачу", "done", palette.greenSoft, palette.green],
+        ["Действие", "создать напоминание", "план", palette.violetSoft, palette.violet]
       ]
     }
-  }[mode];
-  const chip = variant % 2 === 0 ? "Новый отчет" : "Профиль";
+  };
+  return common[mode];
+}
 
-  return `<g transform="translate(${x} ${y}) scale(${scale})">
-    <rect x="-10" y="18" width="284" height="560" rx="46" fill="#020617" opacity="0.26"/>
-    <rect width="264" height="548" rx="44" fill="#08111f"/>
-    <rect x="13" y="15" width="238" height="518" rx="34" fill="${palette.page}"/>
-    <rect x="91" y="29" width="82" height="8" rx="4" fill="#111827" opacity="0.18"/>
-    <circle cx="44" cy="72" r="18" fill="${palette.mintSoft}"/>
-    <text x="39" y="79" font-size="18" font-weight="900" fill="${palette.mint}">+</text>
-    <text x="72" y="68" font-size="18" font-weight="900" fill="${palette.text}">${esc(data.title)}</text>
-    <text x="72" y="88" font-size="11" font-weight="700" fill="${palette.muted}">${esc(chip)}</text>
-    <rect x="26" y="116" width="212" height="118" rx="24" fill="#0f766e"/>
-    <circle cx="204" cy="150" r="42" fill="#ffffff" opacity="0.12"/>
-    <text x="46" y="158" font-size="16" font-weight="800" fill="#ccfbf1">${esc(data.note)}</text>
-    <text x="46" y="195" font-size="32" font-weight="900" fill="#ffffff">${esc(data.hero)}</text>
-    ${pill("без диагноза", 46, 212, "rgba(255,255,255,0.18)", "#ffffff", 120)}
-    ${data.rows.map(([name, value, status, fill, color], index) => metricCard(name, value, status, 30, 260 + index * 82, fill, color)).join("")}
-    <rect x="30" y="503" width="204" height="24" rx="12" fill="${palette.mint}"/>
+function appPanel(x, y, width, height, mode, variant, accent) {
+  const data = screenData(mode, variant);
+  const rowWidth = width - 48;
+  const compact = height < 500;
+  const headerHeight = compact ? 118 : 154;
+  const metricY = compact ? y + 154 : y + 200;
+  const metricHeight = compact ? 72 : 118;
+  const rowGap = compact ? 58 : 94;
+  const rowStart = compact ? y + 236 : y + height - 290;
+  const titleSize = compact ? 27 : 34;
+
+  return `<g>
+    <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${compact ? 30 : 36}" fill="${palette.page}" stroke="rgba(255,255,255,0.72)" stroke-width="2"/>
+    <rect x="${x + 22}" y="${y + 22}" width="${width - 44}" height="${headerHeight}" rx="28" fill="${palette.ink}"/>
+    <circle cx="${x + width - 72}" cy="${y + 68}" r="${compact ? 30 : 36}" fill="${accent}" opacity="0.2"/>
+    <text x="${x + 46}" y="${y + 60}" font-size="${compact ? 16 : 18}" font-weight="900" fill="#b2f2bb">${esc(data.label)}</text>
+    <text x="${x + 46}" y="${y + (compact ? 96 : 105)}" font-size="${titleSize}" font-weight="900" fill="#ffffff">${esc(data.headline)}</text>
+    <text x="${x + 46}" y="${y + (compact ? 120 : 136)}" font-size="${compact ? 13 : 15}" font-weight="800" fill="#cbd5e1">${esc(data.note)}</text>
+    <rect x="${x + 26}" y="${metricY}" width="${width - 52}" height="${metricHeight}" rx="${compact ? 24 : 30}" fill="${palette.surface}" stroke="${palette.border}"/>
+  <text x="${x + 52}" y="${metricY + (compact ? 27 : 42)}" font-size="${compact ? 12 : 15}" font-weight="900" fill="${palette.muted}">Ключевой статус</text>
+    <text x="${x + 52}" y="${metricY + (compact ? 58 : 92)}" font-size="${compact ? 29 : 44}" font-weight="900" fill="${palette.text}">${esc(data.metric)}</text>
+    <path d="M ${x + width - 104} ${metricY + metricHeight - 32} C ${x + width - 78} ${metricY + 34}, ${x + width - 48} ${metricY + 54}, ${x + width - 30} ${metricY + 18}" fill="none" stroke="${accent}" stroke-width="${compact ? 6 : 8}" stroke-linecap="round"/>
+    ${data.rows.map(([label, value, status, fill, color], index) => row(label, value, status, x + 24, rowStart + index * rowGap, rowWidth, fill, color, compact)).join("")}
+    <rect x="${x + 64}" y="${y + height - 34}" width="${width - 128}" height="7" rx="4" fill="#cbd5e1"/>
   </g>`;
 }
 
 function renderSvg(group, variant) {
   const { width, height } = group.size;
-  const isTall = height > 900;
-  const offset = (variant - 3) * 8;
-  const topPad = isTall ? 92 : 58;
+  const tall = height > 900;
+  const headlineSize = tall ? 48 : 42;
+  const panelWidth = tall ? 470 : 590;
+  const panelHeight = tall ? 610 : 380;
+  const panelX = tall ? 60 : 105;
+  const panelY = tall ? 410 : 260;
+  const badgeY = tall ? 290 : 205;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
     <defs>
       <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="${variant % 2 === 0 ? "#052e2b" : palette.bgTop}"/>
-        <stop offset="0.56" stop-color="${palette.bgBottom}"/>
-        <stop offset="1" stop-color="#0f172a"/>
+        <stop offset="0" stop-color="#06141f"/>
+        <stop offset="0.48" stop-color="#0b2a32"/>
+        <stop offset="1" stop-color="#10251f"/>
       </linearGradient>
-      <radialGradient id="glow" cx="35%" cy="20%" r="70%">
-        <stop offset="0" stop-color="#34d399" stop-opacity="0.42"/>
-        <stop offset="1" stop-color="#34d399" stop-opacity="0"/>
+      <radialGradient id="wash" cx="30%" cy="10%" r="80%">
+        <stop offset="0" stop-color="${group.accent}" stop-opacity="0.42"/>
+        <stop offset="1" stop-color="${group.accent}" stop-opacity="0"/>
       </radialGradient>
-      <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
-        <feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#020617" flood-opacity="0.35"/>
+      <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="22" stdDeviation="28" flood-color="#020617" flood-opacity="0.34"/>
       </filter>
     </defs>
     <rect width="${width}" height="${height}" fill="url(#bg)"/>
-    <rect width="${width}" height="${height}" fill="url(#glow)"/>
-    <rect x="${width - 178}" y="${isTall ? 42 : 28}" width="116" height="116" rx="34" fill="#ffffff" opacity="0.10"/>
-    <text x="40" y="${topPad}" font-size="${isTall ? 42 : 38}" font-weight="900" fill="#ffffff">${esc(group.title)}</text>
-    ${wrappedText(group.subtitle, 40, topPad + (isTall ? 46 : 42), width - 92, isTall ? 24 : 21, 800, "#dbeafe", 1.24)}
-    <g opacity="0.96">${group.highlights
-      .map((item, index) =>
-        pill(
-          item,
-          40 + (isTall ? 0 : index * 178),
-          isTall ? 222 + index * 42 : 156,
-          index === 1 ? "#dbeafe" : "rgba(255,255,255,0.14)",
-          index === 1 ? palette.blue : "#ffffff",
-          isTall ? 178 : 154
-        )
-      )
-      .join("")}</g>
-    <g filter="url(#shadow)">
-    ${
-      group.mode === "overview"
-        ? `${phone(48 + offset, 250, variant, "analysis", 0.86)} ${phone(274 - offset, 286, variant, "risk", 0.86)} ${phone(500 + offset, 250, variant, "chat", 0.86)}`
-        : phone(164 + offset, 360, variant, group.mode, 1)
-    }
+    <rect width="${width}" height="${height}" fill="url(#wash)"/>
+    <circle cx="${width - 72}" cy="${tall ? 118 : 86}" r="${tall ? 70 : 56}" fill="#ffffff" opacity="0.08"/>
+    <text x="${tall ? 44 : 54}" y="${tall ? 114 : 82}" font-size="17" font-weight="900" fill="#b2f2bb">Мои Анализы</text>
+    ${textBlock(group.title, tall ? 44 : 54, tall ? 184 : 138, width - (tall ? 86 : 108), headlineSize, 900, "#ffffff", 1.08, 3)}
+    ${textBlock(group.subtitle, tall ? 44 : 54, tall ? 258 : 190, width - (tall ? 86 : 108), tall ? 23 : 19, 800, "#d8f3dc", 1.24, 3)}
+    ${capsule("современный интерфейс", tall ? 44 : 54, badgeY, tall ? 194 : 188, "rgba(255,255,255,0.14)", "#ffffff")}
+    ${capsule("без лишних рамок", tall ? 254 : 260, badgeY, tall ? 162 : 164, "#d8f3dc", "#087f5b")}
+    <g filter="url(#softShadow)">
+      ${appPanel(panelX, panelY, panelWidth, panelHeight, group.mode, variant, group.accent)}
     </g>
-    <rect x="40" y="${height - 118}" width="${width - 80}" height="76" rx="24" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.22)"/>
-    <text x="64" y="${height - 84}" font-size="16" font-weight="900" fill="#ffffff">Информационно, не диагноз</text>
-    <text x="64" y="${height - 58}" font-size="14" font-weight="700" fill="#cbd5e1">Решения по лечению принимает врач.</text>
+    <rect x="${tall ? 44 : 54}" y="${height - (tall ? 80 : 54)}" width="${width - (tall ? 88 : 108)}" height="${tall ? 48 : 38}" rx="19" fill="rgba(255,255,255,0.13)" stroke="rgba(255,255,255,0.22)"/>
+    <text x="${tall ? 68 : 78}" y="${height - (tall ? 50 : 30)}" font-size="${tall ? 14 : 12}" font-weight="900" fill="#ffffff">Информационно, не диагноз. Лечение назначает врач.</text>
   </svg>`;
 }
 
