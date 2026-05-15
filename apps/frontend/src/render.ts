@@ -88,7 +88,7 @@ const sharedHead = `
       .metric strong { display: block; font-size: 24px; margin-bottom: 4px; }
       .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
       .btn { border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); padding: 9px 12px; font-weight: 700; min-height: 38px; display: inline-flex; align-items: center; justify-content: center; }
-      .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+      .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 10px 20px rgba(16, 185, 129, .18); }
       .btn.danger { border-color: #fecaca; color: var(--danger); }
       .badge { display: inline-flex; align-items: center; min-height: 24px; border-radius: 999px; padding: 3px 9px; font-size: 12px; font-weight: 800; white-space: nowrap; }
       .badge.ok { color: var(--ok); background: #dcfce7; }
@@ -226,19 +226,28 @@ export function renderLandingShell(): string {
       }
     })}</script>
     <style>
-      .landing { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
-      .landing-header { min-height: 64px; background: rgba(255,255,255,.9); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 24px; position: sticky; top: 0; z-index: 2; }
+      .landing { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; background: #ffffff; }
+      .landing-header { min-height: 64px; background: rgba(255,255,255,.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 24px; position: sticky; top: 0; z-index: 2; }
       .landing-nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-      .landing-main { padding: 24px; display: grid; gap: 18px; align-content: start; }
-      .landing-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .75fr); gap: 18px; align-items: stretch; }
-      .hero-media { min-height: 250px; border-radius: 8px; background: linear-gradient(135deg, rgba(16,185,129,.18), rgba(37,99,235,.18)), url('https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=1200&q=80') center/cover; border: 1px solid var(--border); }
-      .hero-panel { min-height: 430px; display: grid; align-content: center; gap: 18px; }
-      .hero-panel h1 { margin: 0; font-size: 42px; line-height: 1.08; letter-spacing: 0; max-width: 760px; }
-      .hero-panel p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.6; max-width: 680px; }
-      .preview-stack { display: grid; gap: 12px; align-content: start; }
+      .landing-main { display: grid; align-content: start; }
+      .landing-section { padding: 64px 24px; }
+      .landing-section.soft { background: #f8fafc; }
+      .landing-inner { max-width: 1160px; margin: 0 auto; }
+      .landing-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .75fr); gap: 20px; align-items: stretch; }
+      .hero-panel { min-height: 520px; display: grid; align-content: center; gap: 18px; box-shadow: none; border: 0; padding: 0; }
+      .hero-panel h1 { margin: 0; font-size: 52px; line-height: 1.02; letter-spacing: 0; max-width: 820px; }
+      .hero-panel p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.65; max-width: 690px; }
+      .hero-showcase { display: grid; gap: 14px; align-content: center; min-height: 520px; }
+      .phone-frame { border: 1px solid var(--border); border-radius: 28px; padding: 16px; background: #111827; box-shadow: 0 24px 60px rgba(15, 23, 42, .2); }
+      .phone-screen { border-radius: 18px; background: #f8fafc; padding: 16px; display: grid; gap: 12px; }
+      .health-score { display: grid; place-items: center; width: 124px; height: 124px; border-radius: 50%; margin: 0 auto; background: conic-gradient(#10b981 0 78%, #e5e7eb 78% 100%); color: #111827; font-weight: 900; font-size: 34px; box-shadow: inset 0 0 0 12px #fff; }
+      .feature-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+      .feature-card { padding: 18px; display: grid; gap: 10px; }
+      .feature-icon { width: 40px; height: 40px; border-radius: 8px; display: grid; place-items: center; background: #dcfce7; color: var(--primary-dark); font-weight: 900; }
       .mini-row { display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-soft); }
       .stat-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-      @media (max-width: 640px) { .landing-header { align-items: flex-start; flex-direction: column; padding: 14px 16px; } .landing-main { padding: 16px; } .hero-panel h1 { font-size: 32px; } .stat-strip { grid-template-columns: 1fr; } }
+      @media (max-width: 980px) { .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (max-width: 640px) { .landing-header { align-items: flex-start; flex-direction: column; padding: 14px 16px; } .landing-section { padding: 40px 16px; } .hero-panel, .hero-showcase { min-height: auto; } .hero-panel h1 { font-size: 34px; } .feature-grid, .stat-strip { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
@@ -254,34 +263,48 @@ export function renderLandingShell(): string {
         </nav>
       </header>
       <main class="landing-main">
-        <section class="landing-grid">
-          <div class="panel hero-panel">
+        <section class="landing-section">
+          <div class="landing-inner landing-grid">
+          <div class="hero-panel">
             <nav class="breadcrumb" aria-label="Хлебные крошки"><span>Главная</span></nav>
             <span class="badge info">Предварительная AI-интерпретация</span>
             <h1>Расшифровка медицинских анализов</h1>
-            <p>Загрузите результат лабораторного исследования, получите понятную таблицу показателей, цветовые индикаторы нормы и отклонений, а также осторожное объяснение возможных причин без постановки диагноза.</p>
+            <p>Загрузите результат лабораторного исследования, получите понятную таблицу показателей, цветовые индикаторы нормы и отклонений, динамику здоровья и осторожное объяснение возможных причин без постановки диагноза.</p>
             <div class="actions">
-              <a class="btn primary" href="/app">Войти как пациент</a>
-              <a class="btn" href="/analizy-krovi">Расшифровка анализа крови</a>
+              <a class="btn primary" href="/app">Начать бесплатно</a>
+              <a class="btn" href="/analizy-krovi">Посмотреть анализ крови</a>
             </div>
-            <div class="hero-media" aria-label="Пробирки и лабораторная диагностика"></div>
           </div>
-          <aside class="panel preview-stack" aria-label="Превью интерфейса">
-            <div class="report-head"><h2>Очередь анализов</h2><span class="badge ok">online</span></div>
-            <div class="mini-row"><span class="avatar">ОК</span><div><strong>Общий анализ крови</strong><br /><span class="muted">OCR распознавание</span></div><span class="badge info">2 мин</span></div>
-            <div class="mini-row"><span class="avatar">БХ</span><div><strong>Биохимия</strong><br /><span class="muted">Требует проверки</span></div><span class="badge warn">review</span></div>
-            <div class="mini-row"><span class="avatar">AI</span><div><strong>Интерпретация</strong><br /><span class="muted">Безопасное резюме</span></div><span class="badge ok">готово</span></div>
+          <aside class="hero-showcase" aria-label="Превью мобильного кабинета">
+            <div class="phone-frame">
+              <div class="phone-screen">
+                <div class="panel" style="background:#111827;color:#fff"><span class="muted">Добрый день, Анна</span><div class="health-score">78</div><p class="muted" style="text-align:center">Индекс здоровья</p></div>
+                <div class="mini-row"><span class="avatar">ОК</span><div><strong>Общий анализ крови</strong><br /><span class="muted">3 показателя вне нормы</span></div><span class="badge warn">откл.</span></div>
+                <div class="mini-row"><span class="avatar">AI</span><div><strong>ИИ-диагностика</strong><br /><span class="muted">Симптомы + анализы</span></div><span class="badge ok">готово</span></div>
+              </div>
+            </div>
           </aside>
+          </div>
         </section>
-        <section class="landing-grid">
+        <section class="landing-section soft">
+          <div class="landing-inner feature-grid">
+          <article class="card feature-card"><span class="feature-icon">1</span><h2>Расшифровка анализов</h2><p class="muted">Кровь, моча, биохимия, гормоны и другие исследования с понятными пояснениями.</p></article>
+          <article class="card feature-card"><span class="feature-icon">2</span><h2>ИИ-диагностика</h2><p class="muted">Симптомы, результаты и безопасное предварительное заключение для разговора с врачом.</p></article>
+          <article class="card feature-card"><span class="feature-icon">3</span><h2>Динамика показателей</h2><p class="muted">История анализов, тренды, отклонения и отчеты для врача в одном кабинете.</p></article>
+          <article class="card feature-card"><span class="feature-icon">4</span><h2>Оценка рисков</h2><p class="muted">Кардио, диабет, вес и другие риски на основе профиля здоровья и анализов.</p></article>
+          </div>
+        </section>
+        <section class="landing-section">
+          <div class="landing-inner landing-grid">
           <article class="panel"><h2>Расшифровка медицинских анализов крови</h2><p class="muted">ОАК, лейкоциты, гемоглобин, тромбоциты и другие показатели с краткими пояснениями.</p><a class="btn" href="/analizy-krovi">Открыть страницу</a></article>
           <article class="panel"><h2>Расшифровка медицинских анализов мочи</h2><p class="muted">Показатели мочи, признаки воспаления и рекомендации по обсуждению результата с врачом.</p><a class="btn" href="/analizy-mochi">Открыть страницу</a></article>
+          </div>
         </section>
-        <section class="stat-strip">
+        <section class="landing-section soft"><div class="landing-inner stat-strip">
           <div class="metric"><strong>20 МБ</strong><span class="muted">лимит загрузки файла</span></div>
           <div class="metric"><strong>/app</strong><span class="muted">отдельный кабинет пациента</span></div>
           <div class="metric"><strong>/admin/site.ru</strong><span class="muted">закрытая ссылка администратора</span></div>
-        </section>
+        </div></section>
       </main>
     </div>
     <script>${sidebarScript}</script>
